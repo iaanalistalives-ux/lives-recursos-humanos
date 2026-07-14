@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resumen Semanal de Asistencia — LIVES</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --petroleo:#0E3B36; --esmeralda:#10B981; --esmeralda-osc:#0B815E;
+    --rojo:#DC2626; --ambar:#F59E0B; --fondo:#F1F6F4; --borde:#DCE5E2; --texto:#14201D;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Barlow',sans-serif; background:var(--fondo); color:var(--texto); min-height:100vh;}
+  header{background:var(--petroleo); color:#fff; padding:22px 32px; border-bottom:4px solid var(--esmeralda); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;}
+  header h1{font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:26px; letter-spacing:.5px; text-transform:uppercase;}
+  header .marca{font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:22px; letter-spacing:2px;}
+  main{max-width:1280px; margin:26px auto; padding:0 20px;}
+  .panel{background:#fff; border:1px solid var(--borde); border-radius:10px; padding:20px 24px; margin-bottom:18px;}
+  .panel h2{font-family:'Barlow Condensed',sans-serif; font-size:19px; text-transform:uppercase; letter-spacing:.5px; color:var(--petroleo); margin-bottom:12px;}
+  .controles{display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap;}
+  .campo label{display:block; font-size:12.5px; font-weight:600; color:#4a5a55; margin-bottom:5px;}
+  input[type="file"]{font-family:'Barlow',sans-serif; font-size:13.5px; padding:8px; background:var(--fondo); border:1px dashed var(--borde); border-radius:7px; width:340px; max-width:100%;}
+  input[type="number"]{font-family:'Barlow',sans-serif; font-size:14px; padding:8px 10px; border:1px solid var(--borde); border-radius:7px; width:90px;}
+  button{font-family:'Barlow',sans-serif; font-weight:600; font-size:14.5px; padding:10px 22px; border:none; border-radius:8px; cursor:pointer; transition:.15s;}
+  #btnExportar{background:var(--esmeralda); color:#fff;}
+  #btnExportar:hover{background:var(--esmeralda-osc);}
+  #btnExportar:disabled{background:#b9c8c3; cursor:not-allowed;}
+  #btnExcedentes{background:var(--ambar); color:#fff;}
+  #btnExcedentes:hover{background:#d9860a;}
+  #btnExcedentes:disabled{background:#b9c8c3; cursor:not-allowed;}
+  .tarjetas{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:18px;}
+  .tarjeta{background:#fff; border:1px solid var(--borde); border-radius:10px; padding:15px 18px;}
+  .tarjeta .valor{font-family:'Barlow Condensed',sans-serif; font-size:30px; font-weight:700; color:var(--petroleo);}
+  .tarjeta .etiqueta{font-size:12px; font-weight:600; color:#5c6c67; text-transform:uppercase; letter-spacing:.4px;}
+  .tarjeta.total{background:var(--petroleo); border-bottom:4px solid var(--esmeralda);}
+  .tarjeta.total .valor{color:#fff;}
+  .tarjeta.total .etiqueta{color:#cfe6de;}
+  .tarjeta.alerta .valor{color:var(--rojo);}
+  #avisos{display:none;}
+  #avisos ul{list-style:none; max-height:220px; overflow:auto;}
+  #avisos li{font-size:13.5px; padding:6px 10px; border-left:3px solid var(--ambar); background:#fdf6e9; border-radius:0 6px 6px 0; margin-bottom:6px;}
+  #avisos li.err{border-left-color:var(--rojo); background:#fbeaea;}
+  .tabla-wrap{overflow:auto; max-height:520px; border:1px solid var(--borde); border-radius:8px;}
+  table{border-collapse:collapse; font-size:12px; white-space:nowrap; width:100%;}
+  thead th{background:var(--petroleo); color:#fff; padding:6px 8px; position:sticky; top:0; font-weight:600; text-align:center; z-index:2;}
+  thead tr:nth-child(2) th{top:29px; background:#155a50; font-weight:500; font-size:11px;}
+  tbody td{padding:4px 8px; border-bottom:1px solid var(--borde); text-align:center;}
+  tbody td.txt{text-align:left;}
+  tbody tr:nth-child(even){background:var(--fondo);}
+  td.tot{font-weight:700; color:var(--petroleo);}
+  td.sob{color:var(--esmeralda-osc); font-weight:600;}
+  .nota{font-size:12.5px; color:#5c6c67; margin-top:10px; line-height:1.55;}
+  .nota b.alto{color:var(--rojo);}
+  .oculto{display:none;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Resumen Semanal de Asistencia</h1>
+  <div class="marca">LIVES</div>
+</header>
+<main>
+  <div class="panel">
+    <h2>1 · Cargar reporte de planilla</h2>
+    <div class="controles">
+      <div class="campo">
+        <label>Archivo Rpt_ImprimePlanillaHorizontal (.xlsx)</label>
+        <input type="file" id="archivo" accept=".xlsx,.xls,.xlsm">
+      </div>
+      <div class="campo">
+        <label>Tope de extras por día (h)</label>
+        <input type="number" id="topeExtras" value="2" min="0.5" step="0.5">
+      </div>
+      <button id="btnExportar" disabled>Exportar Asistencia Semanal (.xlsx)</button>
+      <button id="btnExcedentes" disabled>Exportar excedentes (no incluidos)</button>
+    </div>
+    <p class="nota">
+      Reglas: horarios según la <b>guía de códigos embebida</b> (15 códigos por COD_HORARIO, incl. nocturnos L-S y viernes especial); si aparece un código nuevo se interpreta del texto y se avisa · las marcas ER/SR muestran <b>siempre el horario del código</b> (45 min de refrigerio ya considerados en las horas efectivas); las extras <b>nunca extienden la salida</b>, solo aparecen en la columna Sob · extras 1.25 + 1.35 → Sob, de a tope diario (2 h) secuencial evitando el sábado, <b>máx. 12 h/sem</b> · normales máx. 48 h/sem · LINEA = SECTOR_LINEA · totales <b>Nor</b> y <b>Sob</b> en minutos.
+      <br><b class="alto">Importante:</b> las horas ER/SR se generan desde el horario programado, no son marcaciones reales del reloj. Documento de uso interno derivado de planilla.
+    </p>
+  </div>
+
+  <div class="tarjetas oculto" id="resumen">
+    <div class="tarjeta total"><div class="valor" id="tSemana">—</div><div class="etiqueta">Semana</div></div>
+    <div class="tarjeta"><div class="valor" id="tColab">0</div><div class="etiqueta">Colaboradores</div></div>
+    <div class="tarjeta"><div class="valor" id="tNormales">0</div><div class="etiqueta">Horas normales</div></div>
+    <div class="tarjeta"><div class="valor" id="tExtras">0</div><div class="etiqueta">Horas sobretiempo</div></div>
+    <div class="tarjeta alerta"><div class="valor" id="tAvisos">0</div><div class="etiqueta">Advertencias</div></div>
+  </div>
+
+  <div class="panel" id="avisos">
+    <h2>Advertencias</h2>
+    <ul id="listaAvisos"></ul>
+  </div>
+
+  <div class="panel oculto" id="panelTabla">
+    <h2>Vista previa</h2>
+    <div class="tabla-wrap">
+      <table id="tabla">
+        <thead>
+          <tr>
+            <th rowspan="2">Codigo</th><th rowspan="2">DNI</th><th rowspan="2">Trabajador</th><th rowspan="2">Ubicación</th><th rowspan="2">LINEA</th>
+            <th colspan="3" id="hL">LUNES</th><th colspan="3" id="hM">MARTES</th><th colspan="3" id="hX">MIERCOLES</th>
+            <th colspan="3" id="hJ">JUEVES</th><th colspan="3" id="hV">VIERNES</th><th colspan="3" id="hS">SABADO</th>
+            <th colspan="2">TOTAL</th>
+          </tr>
+          <tr>
+            <th>ER</th><th>SR</th><th>Sob</th><th>ER</th><th>SR</th><th>Sob</th><th>ER</th><th>SR</th><th>Sob</th>
+            <th>ER</th><th>SR</th><th>Sob</th><th>ER</th><th>SR</th><th>Sob</th><th>EN</th><th>SN</th><th>Sob</th>
+            <th>Nor</th><th>Sob</th>
+          </tr>
+        </thead>
+        <tbody id="cuerpo"></tbody>
+      </table>
+    </div>
+    <p class="nota">Totales Nor y Sob en minutos (2880 = 48 h · 720 = 12 h), igual que el formato original.</p>
+  </div>
+</main>
+
+<script>
+(function(){
+  'use strict';
+  var datos = null;
+  var semanaNum = null;
+  var anio = null;
+  var fechasDia = [];
+  var avisos = [];
+  var codigosAvisados = {};
+
+  var $ = function(id){ return document.getElementById(id); };
+  var r2 = function(n){ return Math.round(n * 100) / 100; };
+  var H = function(h, m){ return h + m/60; };
+
+  // ============================================================
+  // GUÍA DE CÓDIGOS DE HORARIO (Libro1 — guía oficial de planillas)
+  // Cada código: 6 días Lun..Sáb, cada día = {ini, fin, horas efectivas} o null.
+  // Todas las capacidades semanales suman 48 h (180 LACTANCIA: sale 16:21
+  // pero su hora de lactancia es remunerada, por eso cuenta 9.6 h/día).
+  // ============================================================
+  function dia(iniH, iniM, finH, finM, horas){ return {ini: H(iniH,iniM), fin: H(finH,finM), horas: horas}; }
+  function rep(d, n){ var a=[]; for(var i=0;i<n;i++) a.push(d); return a; }
+  var TABLA_HORARIOS = {
+    '0':   rep(dia(20,0, 6,15, 9.5), 4).concat([dia(20,0, 6,45, 10), null]),           // 20:00-06:15 L-J, 20:00-06:45 V (nocturno) = 48
+    '104': rep(dia(8,0, 17,30, 8.75), 5).concat([dia(8,0, 12,15, 4.25)]),               // = 48
+    '133': rep(dia(9,0, 18,30, 8.75), 5).concat([dia(9,0, 13,15, 4.25)]),               // = 48
+    '152': rep(dia(22,0, 6,0, 8), 6),                                                    // 22:00-06:00 L a S (nocturno, 6 días) = 48
+    '154': rep(dia(8,0, 18,21, 9.6), 5).concat([null]),                                  // = 48
+    '162': rep(dia(7,0, 17,21, 9.6), 5).concat([null]),                                  // = 48
+    '180': rep(dia(7,0, 16,21, 9.6), 5).concat([null]),                                  // LACTANCIA: sale 16:21, hora lactancia remunerada = 48
+    '214': rep(dia(6,0, 16,21, 9.6), 5).concat([null]),                                  // = 48
+    '215': rep(dia(7,30, 17,51, 9.6), 5).concat([null]),                                 // = 48
+    '216': rep(dia(7,0, 16,21, 8.6), 5).concat([dia(7,0, 12,0, 5)]),                     // = 48
+    '217': rep(dia(8,0, 17,21, 8.6), 5).concat([dia(8,0, 13,0, 5)]),                     // = 48
+    '219': rep(dia(9,0, 18,21, 8.6), 5).concat([dia(9,0, 14,0, 5)]),                     // = 48
+    '235': rep(dia(6,0, 15,21, 8.6), 5).concat([dia(7,0, 12,0, 5)]),                     // sábado inicia 07:00 = 48
+    '240': rep(dia(7,30, 16,51, 8.6), 5).concat([dia(7,30, 12,30, 5)]),                  // = 48
+    '248': rep(dia(13,0, 21,0, 8), 5).concat([dia(7,0, 15,0, 8)])                        // turno tarde + sáb mañana = 48
+  };
+
+  // ---------- Respaldo: interpretar el texto DES_HORARIO (códigos nuevos) ----------
+  function parseHorarioTexto(txt){
+    txt = String(txt || '').toUpperCase();
+    var re = /(\d{1,2}):(\d{2})\s*(?:A|-)\s*(\d{1,2}):(\d{2})/g;
+    var rangos = [], m;
+    while ((m = re.exec(txt)) !== null){
+      var ini = parseInt(m[1],10) + parseInt(m[2],10)/60;
+      var fin = parseInt(m[3],10) + parseInt(m[4],10)/60;
+      var span = fin - ini;
+      if (span <= 0) span += 24; // nocturno
+      var horas = span > 8.5 ? r2(span - 0.75) : r2(span); // refrigerio solo en jornadas largas
+      rangos.push({ini: ini, fin: fin, horas: horas});
+    }
+    if (rangos.length === 0) return null;
+    var dias = [];
+    for (var i = 0; i < 5; i++) dias.push(rangos[0]);
+    dias.push(rangos.length >= 2 ? rangos[1] : null);
+    return dias;
+  }
+
+  function obtenerDias(fila){
+    var cod = String(fila.codHorario || '').trim().replace(/^0+(?=\d)/, '');
+    var txt = String(fila.horario || '').toUpperCase();
+    if (cod === ''){
+      // Planillas deja vacío el código 0 (nocturno L-J con viernes especial): se detecta por su texto
+      if (txt.indexOf('06:15') >= 0 && txt.indexOf('20:00') >= 0){
+        cod = '0';
+      }
+    }
+    if (TABLA_HORARIOS.hasOwnProperty(cod)) return TABLA_HORARIOS[cod];
+    // Código fuera de la guía: respaldo por texto, aviso una sola vez por código
+    if (!codigosAvisados[cod]){
+      codigosAvisados[cod] = true;
+      avisos.push({t:'err', msg: 'Código de horario ' + cod + ' no está en la guía embebida ("' + String(fila.horario).trim() + '"). Se interpretó del texto (1 rango = L-V, 2 rangos = L-V + sábado). Verificar y agregar a la guía.'});
+    }
+    var dias = parseHorarioTexto(fila.horario);
+    if (!dias){
+      dias = [];
+      for (var i = 0; i < 5; i++) dias.push({ini:7, fin:17.35, horas:9.6});
+      dias.push(null);
+    }
+    return dias;
+  }
+
+  // ---------- Fechas de la semana ISO ----------
+  function fechasSemana(year, week){
+    var jan4 = new Date(Date.UTC(year, 0, 4));
+    var dow = jan4.getUTCDay() || 7;
+    var lunes = new Date(jan4.getTime() - (dow - 1) * 86400000 + (week - 1) * 7 * 86400000);
+    var dias = [];
+    for (var i = 0; i < 6; i++){
+      var d = new Date(lunes.getTime() + i * 86400000);
+      dias.push(('0' + d.getUTCDate()).slice(-2));
+    }
+    return dias;
+  }
+
+  // ---------- Distribución ----------
+  function distribuir(fila, topeExtrasDia){
+    var dias = obtenerDias(fila);
+    var caps = [], inis = [], fins = [];
+    for (var x = 0; x < 6; x++){
+      caps.push(dias[x] ? dias[x].horas : 0);
+      inis.push(dias[x] ? dias[x].ini : (dias[0] ? dias[0].ini : 7));
+      fins.push(dias[x] ? dias[x].fin : null);
+    }
+
+    // Normales (tope 48), llenado secuencial según los días del código
+    var normTotal = fila.diasNeto;
+    if (normTotal > 48){
+      avisos.push({t:'warn', msg: fila.codigo + ' ' + fila.nombre.trim() + ': ' + normTotal + ' h normales exceden 48. Se ajustó a 48.'});
+      normTotal = 48;
+    }
+    var normal = [0,0,0,0,0,0];
+    var resto = normTotal;
+    for (var d = 0; d < 6 && resto > 0.004; d++){
+      var asigna = Math.min(caps[d], resto);
+      normal[d] = r2(asigna);
+      resto = r2(resto - asigna);
+    }
+    if (resto > 0.004){
+      // Regla acordada: el sobrante de horas normales se pone en sábado
+      normal[5] = r2(normal[5] + resto);
+      avisos.push({t:'warn', msg: fila.codigo + ' ' + fila.nombre.trim() + ': ' + resto + ' h normales no caben Lun–Vie en su horario (cód. ' + String(fila.codHorario).trim() + '); se pusieron en sábado. Revisar.'});
+      resto = 0;
+    }
+
+    // Sobretiempo (1.25 + 1.35): tope 12/sem, de a tope diario, evitando el sábado
+    var extTotal = r2(fila.he125 + fila.he135);
+    if (extTotal > 12){
+      avisos.push({t:'warn', msg: fila.codigo + ' ' + fila.nombre.trim() + ': ' + extTotal + ' h extras exceden 12. Se ajustó a 12.'});
+      extTotal = 12;
+    }
+    var sob = [0,0,0,0,0,0];
+    var restoE = extTotal;
+    // 1) Lun–Vie trabajados
+    for (var i = 0; i < 5 && restoE > 0.004; i++){
+      if (normal[i] <= 0) continue;
+      var a = Math.min(topeExtrasDia, restoE);
+      sob[i] = r2(a);
+      restoE = r2(restoE - a);
+    }
+    // 2) Lun–Vie no trabajados (día dedicado de extras), antes que el sábado
+    for (var i2 = 0; i2 < 5 && restoE > 0.004; i2++){
+      if (normal[i2] > 0) continue;
+      var a2 = Math.min(topeExtrasDia, restoE);
+      sob[i2] = r2(a2);
+      restoE = r2(restoE - a2);
+    }
+    // 3) Sábado, solo si la semana no alcanzó
+    if (restoE > 0.004){
+      sob[5] = r2(sob[5] + restoE);
+      if (sob[5] > topeExtrasDia + 0.004){
+        avisos.push({t:'warn', msg: fila.codigo + ' ' + fila.nombre.trim() + ': el sábado quedó con ' + sob[5] + ' h de sobretiempo (supera el tope diario de ' + topeExtrasDia + ' h). Revisar.'});
+      }
+      restoE = 0;
+    }
+
+    // Horas Doble: este formato no tiene columna para doble
+    if (fila.heDoble > 0){
+      avisos.push({t:'err', msg: fila.codigo + ' ' + fila.nombre.trim() + ': tiene ' + fila.heDoble + ' h extras DOBLE. Este formato no tiene columna de domingo/doble; NO se incluyeron.'});
+    }
+
+    // Marcas ER/SR por día: SIEMPRE según el horario del código, nunca se extienden por extras.
+    // Las horas extras solo aparecen en la columna Sob. Día parcial: la salida se adelanta lo que falte.
+    // Días sin jornada según horario quedan sin marcas (aunque tengan Sob asignado).
+    var er = [null,null,null,null,null,null];
+    var sr = [null,null,null,null,null,null];
+    for (var d2 = 0; d2 < 6; d2++){
+      if (normal[d2] > 0){
+        er[d2] = inis[d2];
+        if (caps[d2] <= 0){
+          // Sábado sin horario propio que recibió sobrante de normales
+          sr[d2] = r2(inis[d2] + normal[d2] + (normal[d2] > 6 ? 0.75 : 0));
+        } else {
+          var finBase = fins[d2] !== null ? fins[d2] : inis[d2] + caps[d2];
+          if (finBase <= inis[d2]) finBase += 24; // nocturno: salida al día siguiente
+          var faltante = r2(caps[d2] - normal[d2]); // día parcial
+          sr[d2] = r2(finBase - faltante);
+        }
+      }
+    }
+
+    return { normal: normal, sob: sob, er: er, sr: sr,
+             excNor: r2(Math.max(0, fila.diasNeto - 48)),
+             excExt: r2(Math.max(0, r2(fila.he125 + fila.he135) - 12)),
+             totNorMin: Math.round(normal.reduce(function(s,v){return s+v;},0) * 60),
+             totSobMin: Math.round(sob.reduce(function(s,v){return s+v;},0) * 60) };
+  }
+
+  // ---------- Lectura ----------
+  $('archivo').addEventListener('change', function(ev){
+    var f = ev.target.files[0];
+    if (!f) return;
+    var reader = new FileReader();
+    reader.onload = function(e){
+      try{
+        var wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+        var ws = wb.Sheets[wb.SheetNames[0]];
+        var aoa = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+        procesar(aoa);
+      }catch(err){
+        alert('No se pudo leer el archivo: ' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(f);
+  });
+
+  function num(v){
+    var n = parseFloat(String(v).replace(',','.'));
+    return isNaN(n) ? 0 : n;
+  }
+
+  function procesar(aoa){
+    avisos = [];
+    codigosAvisados = {};
+    semanaNum = null; anio = null;
+    var hdrRow = -1, hdr = null;
+    for (var r = 0; r < Math.min(aoa.length, 30); r++){
+      var fila = aoa[r].map(function(c){ return String(c).trim(); });
+      var iAM = fila.indexOf('Año-Mes');
+      if (iAM >= 0 && fila[iAM+1]){
+        var m = String(fila[iAM+1]).match(/(\d{4})\s*-\s*(\d{1,2})/);
+        if (m){ anio = parseInt(m[1],10); semanaNum = parseInt(m[2],10); }
+      }
+      if (fila.indexOf('TIP TRABAJADOR') >= 0){ hdrRow = r; hdr = fila; break; }
+    }
+    if (hdrRow < 0){
+      alert('No se encontró la fila de cabeceras (TIP TRABAJADOR). ¿Es el archivo Rpt_ImprimePlanillaHorizontal?');
+      return;
+    }
+    if (semanaNum === null){
+      avisos.push({t:'err', msg: 'No se encontró la celda "Año-Mes". Se usará semana 1; corrige si es necesario.'});
+      anio = new Date().getFullYear(); semanaNum = 1;
+    }
+    fechasDia = fechasSemana(anio, semanaNum);
+
+    var col = function(nombre){ return hdr.indexOf(nombre); };
+    var iTip = col('TIP TRABAJADOR'), iCod = col('COD TRABAJADOR'),
+        iNom = col('NOMBRE'), iPat = col('APE. PATERNO'), iMat = col('APE. MATERNO'),
+        iDni = col('DNI'), iNeto = col('DIAS NETO'),
+        i125 = col('Cant. HORAS EXTRAS 1.25'), i135 = col('Cant. HORAS EXTRAS 1.35'),
+        iDob = col('Cant. HORAS EXTRAS Doble'), iHor = col('DES_HORARIO'),
+        iCodH = col('COD_HORARIO'), iSuc = col('SUCURSAL'), iLin = col('SECTOR_LINEA');
+    if (iNeto < 0 || i125 < 0 || iHor < 0){
+      alert('Faltan columnas esperadas (DIAS NETO / HORAS EXTRAS / DES_HORARIO).');
+      return;
+    }
+    if (iCodH < 0){
+      avisos.push({t:'err', msg: 'El archivo no tiene la columna COD_HORARIO. Todos los horarios se interpretarán del texto.'});
+    }
+    if (iLin < 0){
+      avisos.push({t:'err', msg: 'El archivo no tiene la columna SECTOR_LINEA. La columna LINEA saldrá en blanco.'});
+    }
+    var tope = num($('topeExtras').value) || 2;
+    datos = [];
+    for (var r2i = hdrRow + 1; r2i < aoa.length; r2i++){
+      var f = aoa[r2i];
+      if (!f || String(f[iCod]).trim() === '') continue;
+      var fila = {
+        codigo: String(f[iTip]).trim() + '-' + String(f[iCod]).trim(),
+        dni: String(f[iDni]).trim(),
+        nombre: (String(f[iPat]).trim() + ' ' + String(f[iMat]).trim()).trim() + ' ' + String(f[iNom]).trim(),
+        ubicacion: iSuc >= 0 ? String(f[iSuc]).trim() : '',
+        linea: iLin >= 0 ? String(f[iLin]).trim() : '',
+        diasNeto: num(f[iNeto]),
+        he125: num(f[i125]),
+        he135: i135 >= 0 ? num(f[i135]) : 0,
+        heDoble: iDob >= 0 ? num(f[iDob]) : 0,
+        horario: f[iHor],
+        codHorario: iCodH >= 0 ? f[iCodH] : ''
+      };
+      fila.dist = distribuir(fila, tope);
+      datos.push(fila);
+    }
+    pintar();
+    $('btnExportar').disabled = datos.length === 0;
+    $('btnExcedentes').disabled = datos.length === 0;
+  }
+
+  $('topeExtras').addEventListener('change', function(){
+    if (!datos) return;
+    var tope = num(this.value) || 2;
+    avisos = [];
+    codigosAvisados = {};
+    datos.forEach(function(fila){ fila.dist = distribuir(fila, tope); });
+    pintar();
+  });
+
+  // ---------- Vista previa ----------
+  function hhmm(frac){
+    if (frac === null) return '';
+    var totalMin = Math.round(frac * 60) % 1440; // envuelve pasada la medianoche (turnos nocturnos)
+    var h = Math.floor(totalMin / 60), m = totalMin % 60;
+    return ('0'+h).slice(-2) + ':' + ('0'+m).slice(-2);
+  }
+  function pintar(){
+    var nombresDia = ['LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO'];
+    ['hL','hM','hX','hJ','hV','hS'].forEach(function(id, i){
+      $(id).textContent = nombresDia[i] + ' ' + (fechasDia[i] || '');
+    });
+    var totN = 0, totS = 0;
+    var tb = $('cuerpo'); tb.innerHTML = '';
+    datos.forEach(function(fila){
+      totN += fila.dist.totNorMin; totS += fila.dist.totSobMin;
+      var tds = '<td class="txt">' + fila.codigo + '</td><td class="txt">' + fila.dni + '</td><td class="txt">' + fila.nombre + '</td><td class="txt">' + fila.ubicacion + '</td><td class="txt">' + fila.linea + '</td>';
+      for (var d = 0; d < 6; d++){
+        tds += '<td>' + hhmm(fila.dist.er[d]) + '</td><td>' + hhmm(fila.dist.sr[d]) + '</td><td class="' + (fila.dist.sob[d] > 0 ? 'sob' : '') + '">' + fila.dist.sob[d].toFixed(2) + '</td>';
+      }
+      tds += '<td class="tot">' + fila.dist.totNorMin + '</td><td class="tot">' + fila.dist.totSobMin + '</td>';
+      var tr = document.createElement('tr');
+      tr.innerHTML = tds;
+      tb.appendChild(tr);
+    });
+    $('tSemana').textContent = semanaNum !== null ? ('Sem ' + semanaNum) : '—';
+    $('tColab').textContent = datos.length;
+    $('tNormales').textContent = r2(totN/60).toLocaleString('es-PE');
+    $('tExtras').textContent = r2(totS/60).toLocaleString('es-PE');
+    $('tAvisos').textContent = avisos.length;
+    $('resumen').classList.remove('oculto');
+    $('panelTabla').classList.remove('oculto');
+    var pa = $('avisos'), ul = $('listaAvisos');
+    ul.innerHTML = '';
+    if (avisos.length){
+      avisos.forEach(function(a){
+        var li = document.createElement('li');
+        if (a.t === 'err') li.className = 'err';
+        li.textContent = a.msg;
+        ul.appendChild(li);
+      });
+      pa.style.display = 'block';
+    } else {
+      pa.style.display = 'none';
+    }
+  }
+
+  // ---------- Exportación ----------
+  $('btnExportar').addEventListener('click', function(){
+    if (!datos || !datos.length) return;
+    exportar().catch(function(err){ alert('Error al exportar: ' + err.message); });
+  });
+
+  // ---------- Exportación de excedentes (horas que no entraron al reporte) ----------
+  $('btnExcedentes').addEventListener('click', function(){
+    if (!datos || !datos.length) return;
+    exportarExcedentes().catch(function(err){ alert('Error al exportar excedentes: ' + err.message); });
+  });
+
+  async function exportarExcedentes(){
+    var filas = datos.filter(function(f){
+      return f.dist.excNor > 0 || f.dist.excExt > 0 || f.heDoble > 0;
+    });
+    if (filas.length === 0){
+      alert('Esta semana no hay excedentes: todas las horas del reporte entraron en el formato (48 normales + 12 extras).');
+      return;
+    }
+    var wb = new ExcelJS.Workbook();
+    var ws = wb.addWorksheet('Excedentes');
+    var anchos = {1:3, 2:9, 3:11, 4:34, 5:12, 6:8, 7:8, 8:11, 9:11, 10:12, 11:11, 12:11, 13:12, 14:12, 15:42};
+    for (var c = 1; c <= 15; c++){ ws.getColumn(c).width = anchos[c] || 10; }
+    ws.getRow(3).height = 30;
+
+    var thin = {style:'thin'};
+    var bAll = {top:thin, left:thin, bottom:thin, right:thin};
+    var fillRojo = {type:'pattern', pattern:'solid', fgColor:{argb:'FFCC0000'}};
+    var fHdr = {name:'Arial', size:9, bold:true, color:{argb:'FFFFFFFF'}};
+    var f9  = {name:'Arial', size:9};
+    var f9b = {name:'Arial', size:9, bold:true};
+
+    var t = ws.getCell('B3');
+    t.value = 'HORAS NO INCLUIDAS EN ASISTENCIA (EXCEDENTES)';
+    t.font = {name:'Arial', size:13};
+    t.alignment = {horizontal:'centerContinuous', vertical:'middle'};
+    ws.getCell('B4').value = 'Semana ' + semanaNum;
+    ws.getCell('B4').font = f9b; ws.getCell('B4').numFmt = '@';
+    ws.getCell('D4').value = 'LIVES S.A.C.';
+    ws.getCell('D4').font = f9b; ws.getCell('D4').numFmt = '@';
+    ws.getCell('B5').value = 'Tope del formato: 48 h normales + 12 h extras/sem. Este listado es para revisión de planillas.';
+    ws.getCell('B5').font = {name:'Arial', size:8, italic:true};
+
+    var cab = ['Codigo','DNI','Trabajador','Ubicación','LINEA','Cód. Hor.','Nor. reporte','Nor. incluidas','Nor. excedente','Ext. reporte','Ext. incluidas','Ext. excedente','Doble no incl.','Observación'];
+    for (var i = 0; i < cab.length; i++){
+      var cel = ws.getRow(7).getCell(2 + i);
+      cel.value = cab[i]; cel.fill = fillRojo; cel.font = fHdr; cel.border = bAll;
+      cel.alignment = {horizontal:'center', vertical:'middle', wrapText:true};
+    }
+    ws.getRow(7).height = 24;
+
+    var r = 8;
+    var tNor = 0, tExt = 0, tDob = 0;
+    filas.forEach(function(f){
+      var extRep = r2(f.he125 + f.he135);
+      var obs = [];
+      if (f.dist.excNor > 0) obs.push('Excede 48 h normales');
+      if (f.dist.excExt > 0) obs.push('Excede 12 h extras');
+      if (f.heDoble > 0) obs.push('Horas Doble: el formato no tiene columna domingo/doble');
+      tNor = r2(tNor + f.dist.excNor); tExt = r2(tExt + f.dist.excExt); tDob = r2(tDob + f.heDoble);
+      var vals = [f.codigo, f.dni, f.nombre, f.ubicacion, f.linea, String(f.codHorario).trim(),
+                  f.diasNeto, r2(Math.min(f.diasNeto, 48)), f.dist.excNor,
+                  extRep, r2(Math.min(extRep, 12)), f.dist.excExt,
+                  f.heDoble, obs.join(' · ')];
+      var row = ws.getRow(r);
+      for (var j = 0; j < vals.length; j++){
+        var cel = row.getCell(2 + j);
+        cel.value = vals[j]; cel.border = bAll;
+        if (j <= 5 || j === 13){
+          cel.font = f9; cel.numFmt = '@'; cel.alignment = {horizontal:'left'};
+        } else {
+          var esExc = (j === 8 || j === 11 || j === 12) && vals[j] > 0;
+          cel.font = esExc ? {name:'Arial', size:9, bold:true, color:{argb:'FFCC0000'}} : f9;
+          cel.numFmt = '#,##0.00'; cel.alignment = {horizontal:'right'};
+        }
+      }
+      r++;
+    });
+    // Fila de totales
+    var rt = ws.getRow(r);
+    rt.getCell(2).value = 'TOTAL (' + filas.length + ' colaboradores)';
+    rt.getCell(2).font = f9b; rt.getCell(2).border = bAll;
+    for (var k = 3; k <= 15; k++){ rt.getCell(k).border = bAll; rt.getCell(k).font = f9b; }
+    rt.getCell(10).value = tNor; rt.getCell(10).numFmt = '#,##0.00'; rt.getCell(10).alignment = {horizontal:'right'};
+    rt.getCell(13).value = tExt; rt.getCell(13).numFmt = '#,##0.00'; rt.getCell(13).alignment = {horizontal:'right'};
+    rt.getCell(14).value = tDob; rt.getCell(14).numFmt = '#,##0.00'; rt.getCell(14).alignment = {horizontal:'right'};
+
+    var buf = await wb.xlsx.writeBuffer();
+    var blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'Excedentes_Semana_' + ('0' + semanaNum).slice(-2) + '.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+  }
+
+  async function exportar(){
+    var wb = new ExcelJS.Workbook();
+    var ws = wb.addWorksheet('Asistencia_Semanal');
+
+    var anchos = {1:3, 2:7.44, 3:10.55, 4:30.11, 5:10, 6:6.44, 7:6.33};
+    for (var c = 1; c <= 26; c++){
+      ws.getColumn(c).width = anchos[c] || 8.43;
+    }
+    ws.getRow(3).height = 42;
+    ws.getRow(6).height = 18;
+    ws.getRow(7).height = 13.5;
+
+    var thin = {style:'thin'};
+    var bAll = {top:thin, left:thin, bottom:thin, right:thin};
+    var fillRojo = {type:'pattern', pattern:'solid', fgColor:{argb:'FFCC0000'}};
+    var fHdr = {name:'Arial', size:10, bold:true, color:{argb:'FFFFFFFF'}};
+    var f9  = {name:'Arial', size:9};
+    var f9b = {name:'Arial', size:9, bold:true};
+
+    var t = ws.getCell('B3');
+    t.value = 'RESUMEN SEMANAL DE ASISTENCIA';
+    t.font = {name:'Arial', size:14};
+    t.alignment = {horizontal:'centerContinuous', vertical:'middle'};
+    var s1 = ws.getCell('B4'); s1.value = 'Semana ' + semanaNum; s1.font = {name:'Arial', size:10, bold:true}; s1.numFmt = '@';
+    var s2 = ws.getCell('D4'); s2.value = 'LIVES S.A.C.'; s2.font = {name:'Arial', size:10, bold:true}; s2.numFmt = '@';
+
+    var nombresDia = ['LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO'];
+    var gruposIni = [7,10,13,16,19,22,25];
+    for (var rr = 6; rr <= 7; rr++){
+      for (var cc = 2; cc <= 26; cc++){
+        var cel = ws.getRow(rr).getCell(cc);
+        cel.fill = fillRojo;
+        cel.font = fHdr;
+        cel.alignment = {horizontal:'center', vertical:'middle'};
+        if (rr === 7 || cc <= 6){
+          cel.border = bAll;
+        } else {
+          var esIni = gruposIni.indexOf(cc) >= 0;
+          cel.border = {top:thin, bottom:thin, left: esIni ? thin : undefined, right: cc === 26 ? thin : undefined};
+        }
+      }
+    }
+    ws.getCell('B6').value = 'Codigo';
+    ws.getCell('C6').value = 'Nro.';
+    ws.getCell('D6').value = 'Trabajador';
+    ws.getCell('E6').value = 'Ubicación';
+    ws.getCell('F6').value = 'LINEA';
+    ws.getCell('C7').value = 'DNI';
+    for (var d = 0; d < 6; d++){
+      var c0 = 7 + d*3;
+      var celDia = ws.getRow(6).getCell(c0);
+      celDia.value = nombresDia[d] + ' ' + (fechasDia[d] || '');
+      celDia.alignment = {horizontal:'centerContinuous', vertical:'middle'};
+      var subs = d === 5 ? ['EN','SN','Sob'] : ['ER','SR','Sob'];
+      for (var i = 0; i < 3; i++){
+        ws.getRow(7).getCell(c0 + i).value = subs[i];
+      }
+    }
+    var celTot = ws.getRow(6).getCell(25);
+    celTot.value = 'TOTAL';
+    celTot.alignment = {horizontal:'centerContinuous', vertical:'middle'};
+    ws.getRow(7).getCell(25).value = 'Nor';
+    ws.getRow(7).getCell(26).value = 'Sob';
+
+    var r = 8;
+    datos.forEach(function(fila){
+      var row = ws.getRow(r);
+      var setTxt = function(c, v){
+        var cel = row.getCell(c);
+        cel.value = v; cel.font = f9; cel.border = bAll; cel.numFmt = '@';
+        cel.alignment = {horizontal:'left'};
+      };
+      setTxt(2, fila.codigo);
+      setTxt(3, fila.dni);
+      setTxt(4, fila.nombre);
+      setTxt(5, fila.ubicacion);
+      setTxt(6, fila.linea);
+      for (var d = 0; d < 6; d++){
+        var c0 = 7 + d*3;
+        var cER = row.getCell(c0), cSR = row.getCell(c0+1), cSob = row.getCell(c0+2);
+        cER.border = bAll; cSR.border = bAll; cSob.border = bAll;
+        cER.font = f9b; cSR.font = f9b; cSob.font = f9b;
+        cER.numFmt = 'h:mm'; cSR.numFmt = 'h:mm'; cSob.numFmt = '0.00';
+        cER.alignment = {horizontal:'center'}; cSR.alignment = {horizontal:'center'}; cSob.alignment = {horizontal:'center'};
+        if (fila.dist.er[d] !== null){
+          cER.value = (fila.dist.er[d] % 24) / 24;
+          cSR.value = (fila.dist.sr[d] % 24) / 24; // nocturnos: salida como hora del día siguiente
+        }
+        cSob.value = fila.dist.sob[d];
+      }
+      var cNor = row.getCell(25);
+      cNor.value = String(fila.dist.totNorMin);
+      cNor.font = f9b; cNor.border = bAll; cNor.numFmt = '@'; cNor.alignment = {horizontal:'center'};
+      var cSobT = row.getCell(26);
+      cSobT.value = fila.dist.totSobMin;
+      cSobT.font = f9b; cSobT.border = bAll; cSobT.numFmt = '0'; cSobT.alignment = {horizontal:'center'};
+      r++;
+    });
+
+    var buf = await wb.xlsx.writeBuffer();
+    var blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'Semana_' + ('0' + semanaNum).slice(-2) + '.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>LIVES — Gestión de Personal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
+:root{
+  --sage:#0F7A5A;
+  --sage-dark:#0B815E;
+  --warm-gray:#DCE5E2;
+  --warm-gray-light:#F1F6F4;
+  --slate-blue:#4E6B78;
+  --stone-gray:#5F726C;
+  --taupe:#B45309;
+  --dusty-rose:#DC2626;
+  --warm-tan:#F59E0B;
+  --title-dark:#14201D;
+  --bg:#FFFFFF;
+  --bg-soft:#F1F6F4;
+  --petrol:#0E3B36;
+  --emer:#10B981;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{font-family:Calibri,Arial,sans-serif;background:var(--bg);color:var(--stone-gray);font-size:14px;line-height:1.4}
+h1,h2,h3,h4{font-family:Calibri,Arial,sans-serif;font-weight:400;color:var(--title-dark)}
+button{font-family:inherit;cursor:pointer;background:none;border:none;color:inherit}
+a{color:var(--sage);text-decoration:none}
+input,select{font-family:inherit}
+
+/* Header */
+.lives-header{
+  background:var(--petrol);
+  border-bottom:3px solid var(--emer);
+  height:72px;
+  padding:0 32px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  color:#fff;
+}
+.lives-header svg{height:28px;display:block}
+.lives-header .brand{display:flex;align-items:center;gap:16px}
+.lives-header .title{font-size:18px;font-weight:300;letter-spacing:0.06em;text-transform:uppercase;color:#fff}
+.lives-header .title .subtitle{color:#F5F5F0;margin-left:14px;font-size:13px;letter-spacing:0.04em}
+.lives-header .hdr-actions{display:flex;gap:10px;align-items:center}
+.hdr-btn{padding:7px 14px;border:1px solid rgba(255,255,255,0.55);border-radius:16px;color:#fff;font-size:12.5px;letter-spacing:0.03em;transition:all .15s}
+.hdr-btn:hover{background:rgba(255,255,255,0.15)}
+
+/* Upload screen */
+.upload-wrap{min-height:calc(100vh - 72px);display:flex;align-items:center;justify-content:center;background:var(--bg-soft);padding:32px}
+.upload-card{width:100%;max-width:640px;text-align:center}
+.upload-card h2{font-size:22px;font-weight:300;margin-bottom:6px}
+.upload-card p{color:var(--stone-gray);font-size:13.5px;margin-bottom:28px}
+.dropzone{
+  border:2px dashed var(--warm-gray);
+  border-radius:10px;
+  padding:52px 24px;
+  background:#fff;
+  cursor:pointer;
+  transition:all .15s;
+}
+.dropzone:hover,.dropzone.drag{border-color:var(--sage);background:var(--bg-soft)}
+.dropzone .dz-icon{font-size:38px;color:var(--sage);margin-bottom:14px}
+.dropzone .dz-title{font-size:15px;color:var(--title-dark);margin-bottom:4px}
+.dropzone .dz-sub{font-size:12.5px;color:var(--stone-gray)}
+.upload-note{margin-top:22px;background:#fff;border-left:4px solid var(--warm-tan);padding:12px 16px;text-align:left;font-size:12px;color:var(--stone-gray);border-radius:0 6px 6px 0}
+.upload-error{margin-top:16px;background:#fff;border-left:4px solid var(--dusty-rose);padding:12px 16px;text-align:left;font-size:12.5px;color:var(--title-dark);border-radius:0 6px 6px 0;display:none}
+
+/* Filters Bar */
+.filters-bar{
+  background:#fff;
+  border-bottom:1px solid var(--warm-gray);
+  padding:14px 32px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:18px;
+  align-items:flex-end;
+  position:sticky;
+  top:0;
+  z-index:100;
+}
+.filter-group{display:flex;flex-direction:column;gap:6px;min-width:0}
+.filter-group .filter-label{font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--stone-gray);font-weight:600}
+.search-box{position:relative;min-width:220px}
+.search-box input{width:100%;padding:8px 12px 8px 30px;border:1px solid var(--warm-gray);border-radius:4px;font-size:13px;color:var(--title-dark)}
+.search-box input:focus{outline:none;border-color:var(--sage)}
+.search-box .ic{position:absolute;left:10px;top:8px;font-size:13px;color:var(--stone-gray)}
+.date-range{display:flex;gap:6px;align-items:center}
+.date-range input{padding:6px 8px;border:1px solid var(--warm-gray);border-radius:4px;font-size:12.5px;color:var(--title-dark);width:128px}
+.date-range span{color:var(--stone-gray);font-size:11px}
+
+.multi-select{position:relative;min-width:190px}
+.ms-trigger{padding:7px 12px;border:1px solid var(--warm-gray);background:#fff;font-size:13px;border-radius:4px;cursor:pointer;color:var(--stone-gray);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ms-trigger.active-filter{border-color:var(--sage);color:var(--sage-dark)}
+.ms-trigger:hover{border-color:var(--sage)}
+.ms-trigger .caret{color:var(--stone-gray);font-size:10px}
+.ms-dropdown{position:absolute;top:calc(100% + 4px);left:0;min-width:220px;background:#fff;border:1px solid var(--warm-gray);border-radius:4px;max-height:280px;overflow:hidden;display:none;z-index:200;box-shadow:0 4px 12px rgba(0,0,0,0.10)}
+.ms-dropdown.open{display:flex;flex-direction:column}
+.ms-search{border:none;border-bottom:1px solid var(--warm-gray-light);padding:8px 12px;font-size:13px;font-family:inherit;color:var(--title-dark);outline:none}
+.ms-options{overflow-y:auto;flex:1;max-height:170px}
+.ms-option{padding:6px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12.5px;color:var(--title-dark)}
+.ms-option:hover{background:var(--warm-gray-light)}
+.ms-option input{accent-color:var(--sage)}
+.ms-actions{display:flex;border-top:1px solid var(--warm-gray-light);padding:4px}
+.ms-actions button{font-size:11px;color:var(--sage);padding:4px 8px;letter-spacing:0.04em;text-transform:uppercase}
+.ms-actions button:hover{text-decoration:underline}
+.more-filters-wrap{position:relative}
+
+.view-toggle{display:flex;gap:0;border:1px solid var(--warm-gray);border-radius:4px;overflow:hidden}
+.view-toggle button{padding:8px 16px;font-size:12.5px;color:var(--stone-gray);letter-spacing:0.02em}
+.view-toggle button.active{background:var(--sage);color:#fff}
+.spacer{flex:1}
+.chip{padding:7px 14px;border-radius:16px;background:#fff;color:var(--stone-gray);border:1px solid var(--warm-gray);font-size:12.5px;transition:all 0.15s}
+.chip:hover{border-color:var(--sage)}
+.chip.primary{background:var(--sage);color:#fff;border-color:var(--sage)}
+.chip.primary:hover{background:var(--sage-dark)}
+.active-count{background:var(--dusty-rose);color:#fff;border-radius:9px;font-size:10px;padding:1px 6px;margin-left:6px}
+
+/* Main container */
+.container{padding:24px 32px;max-width:1600px;margin:0 auto}
+.result-line{font-size:12.5px;color:var(--stone-gray);margin-bottom:16px}
+.result-line b{color:var(--title-dark)}
+
+/* KPI Cards */
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:22px}
+.kpi-card{background:#fff;border:1px solid var(--warm-gray);border-radius:6px;padding:16px 18px}
+.kpi-label{font-size:10.5px;text-transform:uppercase;letter-spacing:0.07em;color:var(--stone-gray);font-weight:600;margin-bottom:8px}
+.kpi-value{font-size:26px;font-weight:700;color:var(--sage);line-height:1.1}
+.kpi-card.primary{border:2px solid var(--petrol);background:var(--petrol)}
+.kpi-card.primary .kpi-label{color:#B9D6CD}
+.kpi-card.primary .kpi-value{font-size:34px;color:#fff}
+.kpi-sub{font-size:11.5px;margin-top:6px;color:var(--stone-gray)}
+
+/* Panels */
+.panel-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:16px}
+.panel{background:#fff;border:1px solid var(--warm-gray);border-radius:8px;padding:18px}
+.panel h3{font-size:14px;font-weight:600;color:var(--title-dark);margin-bottom:14px}
+.panel .chart-wrap{position:relative;height:260px}
+.panel.full{grid-column:1 / -1}
+
+/* Table */
+.table-tools{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap}
+.table-scroll{overflow-x:auto;border:1px solid var(--warm-gray);border-radius:8px;background:#fff}
+.table-scroll::-webkit-scrollbar{height:10px}
+.table-scroll::-webkit-scrollbar-track{background:var(--warm-gray-light)}
+.table-scroll::-webkit-scrollbar-thumb{background:var(--warm-gray);border-radius:6px}
+.table-scroll::-webkit-scrollbar-thumb:hover{background:var(--slate-blue)}
+table.data-table{border-collapse:collapse;width:max-content;min-width:100%;font-size:12.5px;white-space:nowrap}
+table.data-table thead th{background:var(--bg-soft);color:var(--stone-gray);text-transform:uppercase;font-size:10.5px;letter-spacing:0.04em;padding:10px 14px;text-align:left;border-bottom:1px solid var(--warm-gray);cursor:pointer;user-select:none;position:sticky;top:0}
+table.data-table thead th:hover{color:var(--sage-dark)}
+table.data-table thead th .sort-arrow{margin-left:4px;color:var(--sage);font-size:9px}
+table.data-table tbody td{padding:9px 14px;border-bottom:1px solid var(--warm-gray-light);color:var(--title-dark)}
+table.data-table tbody tr:hover{background:var(--warm-gray-light)}
+.pill-sexo-F{color:var(--taupe);font-weight:600}
+.pill-sexo-M{color:var(--slate-blue);font-weight:600}
+.pill-estado-Activo{color:var(--sage);font-weight:600}
+.pill-estado-Cesado{color:var(--dusty-rose);font-weight:600}
+.pagination{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:12px;color:var(--stone-gray)}
+.pagination .pg-btns{display:flex;gap:6px}
+.pagination button{padding:5px 11px;border:1px solid var(--warm-gray);border-radius:4px;font-size:12px}
+.pagination button:disabled{opacity:.4;cursor:default}
+.pagination button:not(:disabled):hover{border-color:var(--sage)}
+
+/* Column picker */
+.colpicker-wrap{position:relative}
+.colpicker-panel{position:absolute;right:0;top:calc(100% + 6px);background:#fff;border:1px solid var(--warm-gray);border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,0.10);width:280px;max-height:360px;overflow-y:auto;display:none;z-index:300;padding:10px}
+.colpicker-panel.open{display:block}
+.colpicker-group-title{font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;color:var(--taupe);font-weight:700;padding:8px 6px 4px}
+.colpicker-item{display:flex;align-items:center;gap:8px;padding:5px 6px;font-size:12.5px;color:var(--title-dark);border-radius:4px}
+.colpicker-item:hover{background:var(--warm-gray-light)}
+.colpicker-item input{accent-color:var(--sage)}
+.sensitive-warn{font-size:10.5px;color:var(--dusty-rose);padding:6px 6px 2px}
+
+/* Export modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(51,51,51,0.45);display:none;align-items:center;justify-content:center;z-index:1000}
+.modal-overlay.open{display:flex}
+.modal-box{background:#fff;border-radius:8px;width:420px;max-width:92vw;padding:24px}
+.modal-box h3{font-size:16px;margin-bottom:6px}
+.modal-box p{font-size:12.5px;color:var(--stone-gray);margin-bottom:16px}
+.modal-toggle-row{display:flex;align-items:flex-start;gap:10px;background:var(--bg-soft);border:1px solid var(--warm-gray);border-radius:6px;padding:12px;margin-bottom:16px}
+.modal-toggle-row input{margin-top:2px;accent-color:var(--dusty-rose)}
+.modal-toggle-row .tt{font-size:12.5px;color:var(--title-dark);font-weight:600}
+.modal-toggle-row .ts{font-size:11.5px;color:var(--stone-gray);margin-top:2px}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px}
+.btn-secondary{padding:9px 16px;border:1px solid var(--warm-gray);border-radius:4px;font-size:13px;color:var(--stone-gray)}
+.btn-secondary:hover{border-color:var(--sage)}
+.btn-primary{padding:9px 18px;border-radius:4px;font-size:13px;background:var(--sage);color:#fff}
+.btn-primary:hover{background:var(--sage-dark)}
+
+#appScreen{display:none}
+.hidden{display:none !important}
+@media print{.filters-bar,.hdr-actions,.table-tools,.pagination{display:none !important}}
+</style>
+</head>
+<body>
+
+<div class="lives-header">
+  <div class="brand">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="256 892 1070 285" fill="#FFFFFF">
+      <path d="M922.000000,969.000000C922.003723,955.001160 921.967468,941.502197 922.029236,928.003601C922.057251,921.870911 922.871948,921.032715 929.002319,921.028259C974.331726,920.995361 1019.661072,920.995422 1064.990479,921.028259C1071.122559,921.032654 1071.856201,921.876892 1071.986694,927.998962C1072.220337,938.949707 1072.175903,938.998169 1060.993408,938.999207C1027.829590,939.002258 994.665833,938.992371 961.502014,939.009338C953.449402,939.013428 953.014526,939.451599 953.007629,947.502258C952.988586,969.666992 952.984802,991.831787 953.012085,1013.996521C953.021179,1021.404907 953.592896,1021.979370 961.000854,1021.986084C989.165100,1022.011536 1017.329285,1021.993958 1045.493530,1022.003601C1054.576538,1022.006714 1057.366943,1025.554443 1054.560913,1034.424194C1054.052246,1036.032227 1050.937744,1037.752197 1048.978271,1037.810303C1037.822144,1038.141724 1026.651611,1037.989746 1015.485962,1037.993286C997.154236,1037.999146 978.822388,1037.972534 960.490784,1038.014038C953.732666,1038.029297 953.026550,1038.731934 953.018250,1045.510620C952.985718,1072.174927 952.985596,1098.839355 953.018555,1125.503662C953.026917,1132.270874 953.734497,1132.980225 960.505066,1132.986450C994.668762,1133.017944 1028.832886,1132.944458 1062.995605,1133.118286C1065.835327,1133.132690 1070.872925,1134.319946 1071.106201,1135.633789C1071.948242,1140.376343 1071.449951,1145.446777 1070.739502,1150.288086C1070.617676,1151.119019 1066.993042,1151.892456 1064.977539,1151.915405C1051.980347,1152.063965 1038.980713,1151.999023 1025.981812,1151.999390C994.151245,1152.000244 962.320618,1152.008179 930.490051,1151.991211C922.450195,1151.986816 922.011047,1151.548828 922.009277,1143.484619C921.996216,1085.489746 922.000916,1027.494873 922.000000,969.000000z"/>
+      <path d="M1256.371826,929.606079C1268.946411,937.231934 1277.884644,947.439087 1282.435791,961.161072C1284.607178,967.707458 1283.630859,968.602661 1276.903442,969.057983C1267.447388,969.697876 1259.984253,969.504395 1257.139648,957.198364C1254.540161,945.952820 1244.487061,940.064331 1233.806030,936.471130C1213.883789,929.769226 1194.237915,929.839355 1175.095947,939.432617C1163.825073,945.080994 1156.191284,953.316772 1155.006226,966.515808C1153.711426,980.936768 1160.739868,990.461731 1172.342407,997.777100C1189.302124,1008.470215 1208.214111,1014.497620 1226.890747,1021.084167C1242.068481,1026.436890 1256.258545,1033.445190 1269.259644,1043.089600C1305.998535,1070.343018 1298.081299,1125.317993 1259.652954,1145.170776C1245.750366,1152.353149 1230.879395,1155.423950 1215.392578,1155.985962C1199.309326,1156.569580 1183.444336,1155.447388 1168.091797,1150.020752C1149.534058,1143.461060 1133.989014,1133.213135 1125.519165,1114.696411C1123.338135,1109.928345 1122.318604,1104.568481 1121.225098,1099.383545C1120.391113,1095.428711 1122.106689,1092.880859 1126.585205,1093.038086C1126.751465,1093.043945 1126.918579,1093.021484 1127.084961,1093.026733C1131.902344,1093.178223 1137.725830,1091.744019 1141.231812,1093.966187C1144.263306,1095.887573 1144.829346,1101.909668 1146.194458,1106.211304C1150.757690,1120.590942 1160.325562,1130.529175 1174.282959,1135.353149C1198.470215,1143.712769 1222.660522,1143.713135 1246.167114,1132.377930C1254.947266,1128.144043 1260.783691,1121.105469 1262.737183,1111.625244C1266.852661,1091.652100 1262.434692,1077.169067 1244.663452,1064.733765C1231.644531,1055.623901 1216.843750,1050.589478 1202.282715,1044.842407C1188.217285,1039.291016 1174.019897,1033.849365 1160.598145,1026.960938C1149.133667,1021.077148 1138.935913,1012.717529 1134.008423,1000.155212C1123.727905,973.944702 1130.833496,940.327393 1163.224609,925.874573C1194.404785,911.962097 1225.692383,913.162109 1256.371826,929.606079z"/>
+      <path d="M689.711609,964.261353C706.209290,1003.806580 722.545410,1043.004028 738.893494,1082.196289C742.589050,1091.055908 746.326721,1099.897949 750.632629,1110.146606C752.219177,1107.257080 753.274353,1105.719360 753.959412,1104.031372C771.245605,1061.439331 788.483765,1018.827698 805.752197,976.228394C812.258728,960.177490 819.031311,944.229797 825.237915,928.064331C827.323975,922.630859 830.379395,920.715332 836.056030,920.895020C846.347656,921.220825 846.284241,920.924133 842.466858,930.332520C825.372681,972.463135 808.339417,1014.618530 791.256714,1056.753906C779.242920,1086.386475 767.102966,1115.968628 755.233765,1145.658936C753.421631,1150.191895 750.980103,1152.172119 746.015259,1152.072754C729.620483,1151.744751 732.478699,1153.512695 726.528137,1139.312622C696.857300,1068.507690 667.158264,997.714600 637.462891,926.919922C635.370056,921.930664 635.840881,921.080811 641.271423,921.031555C649.600464,920.955994 657.932068,921.107117 666.259949,920.983948C670.106689,920.927063 672.419617,922.471252 673.876526,926.066284C679.004639,938.721069 684.313843,951.302490 689.711609,964.261353z"/>
+      <path d="M276.004944,1003.000000C276.006287,978.002014 275.991669,953.503967 276.018494,929.005981C276.026611,921.599487 276.604797,921.047546 284.006927,921.011902C289.839417,920.983887 295.672577,921.070984 301.504852,921.028931C305.258301,921.001892 307.037170,922.775513 306.964142,926.514954C306.925079,928.513611 306.995880,930.514099 306.995941,932.513794C306.998474,996.175293 306.995514,1059.836792 307.001709,1123.498291C307.002594,1132.883789 307.119720,1132.999146 316.499573,1133.001587C350.163483,1133.010620 383.827423,1132.997559 417.491333,1133.014893C425.546356,1133.019043 425.956146,1133.466675 425.996490,1141.504761C426.001526,1142.504639 426.005341,1143.504639 425.991669,1144.504395C425.899017,1151.267822 425.267242,1151.977173 418.490265,1151.980957C373.493958,1152.005981 328.497620,1152.006104 283.501312,1151.980713C276.739044,1151.976807 276.028229,1151.264160 276.024353,1144.488403C275.997498,1097.492310 276.007050,1050.496094 276.004944,1003.000000z"/>
+      <path d="M546.000000,979.000000C545.999634,1033.996460 546.003662,1088.492798 545.994385,1142.989258C545.992920,1151.704834 545.706116,1151.977539 537.006348,1151.994263C531.506958,1152.004761 526.007080,1151.928589 520.508057,1151.971191C516.761414,1152.000244 514.955139,1150.242065 515.040100,1146.495850C515.070312,1145.163818 515.006042,1143.829834 515.005981,1142.496826C515.003967,1071.834839 515.001526,1001.172791 515.007141,930.510742C515.007874,921.118774 515.122803,921.017517 524.499512,921.002991C529.499146,920.995239 534.504211,921.157715 539.496887,920.974487C544.198853,920.801941 546.068481,922.808105 546.034180,927.503723C545.909973,944.501709 545.994324,961.501099 546.000000,979.000000z"/>
+    </svg>
+    <div class="title">GESTIÓN DE PERSONAL <span class="subtitle" id="fileNameLabel"></span></div>
+  </div>
+  <div class="hdr-actions" id="hdrActions" style="display:none">
+    <button class="hdr-btn" id="btnNewFile">Cargar otro archivo</button>
+  </div>
+</div>
+
+<!-- UPLOAD SCREEN -->
+<div class="upload-wrap" id="uploadScreen">
+  <div class="upload-card">
+    <h2>Sube tu listado de trabajadores</h2>
+    <p>Arrastra el Excel aquí o haz clic para seleccionarlo. Se detecta automáticamente la fila de encabezados aunque tenga filas de título arriba.</p>
+    <div class="dropzone" id="dropzone">
+      <div class="dz-icon">⬆</div>
+      <div class="dz-title">Suelta el archivo .xlsx / .xls / .csv</div>
+      <div class="dz-sub">o haz clic para buscarlo en tu equipo</div>
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none">
+    </div>
+    <div class="upload-note">Apellido Paterno, Apellido Materno y Nombre se combinan automáticamente en un solo campo "Nombre completo" para poder buscarlos juntos.</div>
+    <div class="upload-error" id="uploadError"></div>
+  </div>
+</div>
+
+<!-- APP SCREEN -->
+<div id="appScreen">
+  <div class="filters-bar">
+    <div class="filter-group">
+      <span class="filter-label">Buscar</span>
+      <div class="search-box">
+        <span class="ic">🔍</span>
+        <input type="text" id="searchInput" placeholder="Nombre, código, cargo, DNI...">
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <span class="filter-label">Fecha ingreso</span>
+      <div class="date-range" id="dateRangeIngreso"></div>
+    </div>
+
+    <div id="dynamicFilters" style="display:contents"></div>
+
+    <div class="filter-group more-filters-wrap" id="moreFiltersWrap"></div>
+
+    <div class="spacer"></div>
+
+    <div class="filter-group">
+      <span class="filter-label">Vista</span>
+      <div class="view-toggle">
+        <button id="btnViewDashboard" class="active">Dashboard resumido</button>
+        <button id="btnViewTable">Tabla</button>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <span class="filter-label">&nbsp;</span>
+      <div style="display:flex;gap:8px">
+        <button class="chip" id="btnReset">Restablecer filtros</button>
+        <button class="chip" id="btnExportDash">Exportar dashboard ⬇</button>
+        <button class="chip primary" id="btnExport">Exportar tabla ⬇</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="result-line" id="resultLine"></div>
+
+    <!-- DASHBOARD VIEW -->
+    <div id="dashboardView">
+      <div class="kpi-row" id="kpiRow"></div>
+      <div class="panel-grid">
+        <div class="panel"><h3>Distribución por área</h3><div class="chart-wrap"><canvas id="chartArea"></canvas></div></div>
+        <div class="panel"><h3>Distribución por sexo</h3><div class="chart-wrap"><canvas id="chartSexo"></canvas></div></div>
+        <div class="panel"><h3>Distribución por categoría</h3><div class="chart-wrap"><canvas id="chartCategoria"></canvas></div></div>
+        <div class="panel"><h3>Distribución por sucursal</h3><div class="chart-wrap"><canvas id="chartSucursal"></canvas></div></div>
+        <div class="panel"><h3>Antigüedad (años)</h3><div class="chart-wrap"><canvas id="chartAntiguedad"></canvas></div></div>
+        <div class="panel"><h3>Edad (años)</h3><div class="chart-wrap"><canvas id="chartEdad"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- TABLE VIEW -->
+    <div id="tableView" class="hidden">
+      <div class="table-tools">
+        <div style="font-size:12px;color:var(--stone-gray)">Clic en un encabezado para ordenar</div>
+        <div class="colpicker-wrap">
+          <button class="chip" id="btnCols">Columnas visibles ▾</button>
+          <div class="colpicker-panel" id="colPanel"></div>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead><tr id="tableHeadRow"></tr></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <div id="pgInfo"></div>
+        <div class="pg-btns">
+          <button id="pgPrev">‹ Anterior</button>
+          <button id="pgNext">Siguiente ›</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EXPORT MODAL -->
+<div class="modal-overlay" id="exportModal">
+  <div class="modal-box">
+    <h3>Exportar tabla a Excel</h3>
+    <p id="exportSummary">Se exportarán los registros filtrados actuales, con encabezado de color y bordes.</p>
+    <div class="modal-toggle-row">
+      <input type="checkbox" id="includeSensitive">
+      <div>
+        <div class="tt">Incluir datos sensibles</div>
+        <div class="ts">DNI, cuentas bancarias, sueldo básico, dirección, teléfono y correo. Desmarcado por defecto — actívalo solo si de verdad lo necesitas en este archivo.</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="btnExportCancel">Cancelar</button>
+      <button class="btn-primary" id="btnExportConfirm">Descargar Excel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const FONT='Calibri, Arial, sans-serif';
+Chart.defaults.font.family=FONT;
+Chart.defaults.font.size=12;
+Chart.defaults.color='#7C7B77';
+Chart.defaults.borderColor='#F5F2F0';
+Chart.defaults.plugins.tooltip.backgroundColor='rgba(51,51,51,0.95)';
+Chart.defaults.plugins.tooltip.padding=10;
+Chart.defaults.plugins.tooltip.cornerRadius=4;
+Chart.defaults.plugins.legend.display=false;
+if(window.ChartDataLabels) Chart.register(ChartDataLabels);
+Chart.defaults.set('plugins.datalabels',{display:false});
+const PALETTE=['#10B981','#4E6B78','#F59E0B','#DC2626','#0E3B36','#8FA6A0','#0B815E','#B45309'];
+const fmtInt=n=>Math.round(n).toLocaleString('es-PE');
+
+// Campos sensibles: ocultos por defecto en tabla y excluidos por defecto de la exportación
+const SENSITIVE_FIELDS=['Dni','Dirección','Teléfonos','Correo Electronico','Banco Cuenta','Cuenta','Banco Cts','Cuenta Cts','Basico S/.','Fecha Exp DNI','Cussp'];
+// columnas que nunca deben convertirse en filtro tipo chip (texto libre / IDs / sensibles)
+const FILTER_EXCLUDE=['Codigo','Ape Paterno','Ape Materno','Nombre','Datos Compl.','Codigo Categoria','Codigo Cargo','Centro Costo','Cod Horario','Desc Horario',
+  ...SENSITIVE_FIELDS];
+// prioridad de columnas candidatas a filtro (si existen en el archivo)
+const FILTER_PRIORITY=['Costo','Sector Línea','Sexo','Categoria','Cargo','Sucursal ','Sucursal','Modalidad de Contrato','Descripción Area','Estado Civil','Afp','Nivel Educativo','Grupo Sanguineo','Discapacitado','Planilla','Color Trabajador','Código de talla'];
+const DATE_FIELDS=['Fecha Ingreso','Feche Cese','Fec. Nacimiento','Fecha Fin Contrato'];
+// columnas por defecto visibles en la tabla
+const DEFAULT_VISIBLE=['Codigo','Nombre completo','Descripción Area','Sector Línea','Cargo','Categoria','Sucursal ','Sucursal','Fecha Ingreso','Estado'];
+
+const STATE={
+  headers:[],           // encabezados originales del excel
+  records:[],           // array de objetos {header: valor, ...} + derivados
+  filters:{},           // {header: Set(valores seleccionados)}
+  dateFilters:{},       // {header: {from:Date|null, to:Date|null}}
+  search:'',
+  view:'dashboard',
+  sortCol:null,
+  sortDir:1,
+  page:1,
+  pageSize:25,
+  visibleCols:new Set()
+};
+
+function normDateOnly(v){
+  if(!v) return null;
+  if(v instanceof Date && !isNaN(v)) return v;
+  if(typeof v==='number'){ const d=XLSX.SSF?XLSX.SSF.parse_date_code(v):null; if(d) return new Date(d.y,d.m-1,d.d); }
+  if(typeof v==='string'){
+    const s=v.trim();
+    let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if(m) return new Date(+m[1],+m[2]-1,+m[3]);
+    m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if(m) return new Date(+m[3],+m[2]-1,+m[1]);
+  }
+  return null;
+}
+
+function detectHeaderRow(matrix){
+  let bestIdx=0, bestScore=-1;
+  const maxScan=Math.min(matrix.length,25);
+  for(let i=0;i<maxScan;i++){
+    const row=matrix[i]||[];
+    const filled=row.filter(c=>c!==null && c!==undefined && String(c).trim()!=='').length;
+    const nextRow=matrix[i+1]||[];
+    const nextFilled=nextRow.filter(c=>c!==null && c!==undefined && String(c).trim()!=='').length;
+    if(filled<4) continue;
+    // una fila de encabezado real suele ir seguida de una fila con datos de tamaño similar
+    const score=filled + (nextFilled>=filled*0.5 ? 15 : 0);
+    if(score>bestScore){bestScore=score; bestIdx=i;}
+  }
+  return bestIdx;
+}
+
+function buildFullName(rec){
+  const parts=[rec['Ape Paterno'],rec['Ape Materno'],rec['Nombre']].map(v=>(v==null?'':String(v).trim())).filter(Boolean);
+  return parts.join(' ');
+}
+
+function yearsBetween(d1,d2){ if(!d1||!d2) return null; let y=d2.getFullYear()-d1.getFullYear(); const m=d2.getMonth()-d1.getMonth(); if(m<0||(m===0&&d2.getDate()<d1.getDate())) y--; return y; }
+
+function processWorkbook(matrix){
+  const headerIdx=detectHeaderRow(matrix);
+  const headers=(matrix[headerIdx]||[]).map(h=>h==null?'':String(h).trim());
+  const dataRows=matrix.slice(headerIdx+1).filter(r=>r && r.some(c=>c!==null && c!==undefined && String(c).trim()!==''));
+  const today=new Date();
+  const records=dataRows.map(row=>{
+    const rec={};
+    headers.forEach((h,i)=>{ if(h) rec[h]=row[i]!==undefined?row[i]:null; });
+    rec['Nombre completo']=buildFullName(rec);
+    const fIngreso=normDateOnly(rec['Fecha Ingreso']);
+    const fCese=normDateOnly(rec['Feche Cese']);
+    const fNac=normDateOnly(rec['Fec. Nacimiento']);
+    rec.__fIngreso=fIngreso; rec.__fCese=fCese; rec.__fNac=fNac;
+    rec['Estado']=fCese?'Cesado':'Activo';
+    rec.__edad=yearsBetween(fNac,today);
+    rec.__antiguedad=yearsBetween(fIngreso, fCese||today);
+    return rec;
+  });
+  return {headers:headers.filter(Boolean),records};
+}
+
+function uniqueValues(col){
+  const set=new Set();
+  STATE.records.forEach(r=>{ const v=r[col]; if(v!==null && v!==undefined && String(v).trim()!=='') set.add(String(v).trim()); });
+  return Array.from(set).sort((a,b)=>a.localeCompare(b,'es'));
+}
+
+function pickFilterColumns(){
+  const candidates=[];
+  const seen=new Set();
+  FILTER_PRIORITY.forEach(c=>{ if(STATE.headers.includes(c) && !seen.has(c)){ seen.add(c); candidates.push(c);} });
+  STATE.headers.forEach(c=>{
+    if(seen.has(c) || FILTER_EXCLUDE.includes(c) || DATE_FIELDS.includes(c)) return;
+    const u=uniqueValues(c).length;
+    if(u>=2 && u<=40){ seen.add(c); candidates.push(c); }
+  });
+  return candidates;
+}
+
+/* ---------- Multi-select builder ---------- */
+function buildMultiSelect(container, col, label){
+  const wrap=document.createElement('div');
+  wrap.className='filter-group';
+  const lbl=document.createElement('span'); lbl.className='filter-label'; lbl.textContent=label;
+  const ms=document.createElement('div'); ms.className='multi-select';
+  const trigger=document.createElement('div'); trigger.className='ms-trigger';
+  trigger.innerHTML=`<span class="ms-trigger-text">Todos</span><span class="caret">▾</span>`;
+  const dd=document.createElement('div'); dd.className='ms-dropdown';
+  const searchIn=document.createElement('input'); searchIn.className='ms-search'; searchIn.placeholder='Buscar...';
+  const optsWrap=document.createElement('div'); optsWrap.className='ms-options';
+  const actions=document.createElement('div'); actions.className='ms-actions';
+  actions.innerHTML=`<button data-act="all">Todos</button><button data-act="none">Ninguno</button>`;
+  dd.appendChild(searchIn); dd.appendChild(optsWrap); dd.appendChild(actions);
+  dd.addEventListener('click',e=>e.stopPropagation());
+  ms.appendChild(trigger); ms.appendChild(dd);
+  wrap.appendChild(lbl); wrap.appendChild(ms);
+  container.appendChild(wrap);
+
+  const values=uniqueValues(col);
+  STATE.filters[col]=new Set(values);
+
+  function renderOptions(filterText){
+    optsWrap.innerHTML='';
+    values.filter(v=>!filterText || v.toLowerCase().includes(filterText.toLowerCase())).forEach(v=>{
+      const opt=document.createElement('label'); opt.className='ms-option';
+      const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=STATE.filters[col].has(v);
+      cb.addEventListener('change',()=>{
+        if(cb.checked) STATE.filters[col].add(v); else STATE.filters[col].delete(v);
+        updateTriggerLabel(); applyFiltersAndRender();
+      });
+      opt.appendChild(cb);
+      const sp=document.createElement('span'); sp.textContent=v; opt.appendChild(sp);
+      optsWrap.appendChild(opt);
+    });
+  }
+  function updateTriggerLabel(){
+    const n=STATE.filters[col].size;
+    const txt=trigger.querySelector('.ms-trigger-text');
+    if(n===0){ txt.textContent='Ninguno'; trigger.classList.add('active-filter'); }
+    else if(n===values.length){ txt.textContent='Todos'; trigger.classList.remove('active-filter'); }
+    else { txt.textContent=n+' seleccionados'; trigger.classList.add('active-filter'); }
+  }
+  trigger.addEventListener('click',(e)=>{
+    document.querySelectorAll('.ms-dropdown.open').forEach(d=>{ if(d!==dd && !d.contains(dd)) d.classList.remove('open'); });
+    dd.classList.toggle('open');
+    if(dd.classList.contains('open')){ renderOptions(''); searchIn.value=''; searchIn.focus(); }
+    e.stopPropagation();
+  });
+  searchIn.addEventListener('input',()=>renderOptions(searchIn.value));
+  actions.addEventListener('click',(e)=>{
+    const act=e.target.getAttribute('data-act'); if(!act) return;
+    if(act==='all') values.forEach(v=>STATE.filters[col].add(v));
+    if(act==='none') STATE.filters[col].clear();
+    updateTriggerLabel(); renderOptions(searchIn.value); applyFiltersAndRender();
+  });
+  updateTriggerLabel();
+  return {reset:()=>{ STATE.filters[col]=new Set(values); updateTriggerLabel(); }};
+}
+
+const msResets=[];
+
+function buildDateRange(container, col, label){
+  container.innerHTML='';
+  const from=document.createElement('input'); from.type='date';
+  const to=document.createElement('input'); to.type='date';
+  const sep=document.createElement('span'); sep.textContent='—';
+  container.appendChild(from); container.appendChild(sep); container.appendChild(to);
+  STATE.dateFilters[col]={from:null,to:null};
+  from.addEventListener('change',()=>{ STATE.dateFilters[col].from = from.value?new Date(from.value+'T00:00:00'):null; applyFiltersAndRender(); });
+  to.addEventListener('change',()=>{ STATE.dateFilters[col].to = to.value?new Date(to.value+'T23:59:59'):null; applyFiltersAndRender(); });
+  return {reset:()=>{ from.value=''; to.value=''; STATE.dateFilters[col]={from:null,to:null}; }};
+}
+
+function buildFiltersUI(){
+  const dynWrap=document.getElementById('dynamicFilters');
+  dynWrap.innerHTML='';
+  msResets.length=0;
+  const cols=pickFilterColumns();
+  const shown=cols.slice(0,6);
+  const extra=cols.slice(6);
+  shown.forEach(c=>msResets.push(buildMultiSelect(dynWrap,c,c)));
+
+  const moreWrap=document.getElementById('moreFiltersWrap');
+  moreWrap.innerHTML='';
+  if(extra.length){
+    const lbl=document.createElement('span'); lbl.className='filter-label'; lbl.textContent='Más filtros';
+    const btn=document.createElement('button'); btn.className='ms-trigger'; btn.innerHTML=`<span>+ ${extra.length} filtros</span><span class="caret">▾</span>`;
+    const panel=document.createElement('div'); panel.className='ms-dropdown'; panel.style.minWidth='260px';
+    const opts=document.createElement('div'); opts.className='ms-options'; opts.style.maxHeight='240px'; opts.style.padding='6px';
+    extra.forEach(c=>{
+      const row=document.createElement('div'); row.style.marginBottom='10px';
+      buildMultiSelect(row===row?opts:opts,c,c); // placeholder not used
+    });
+    // Build extra filters directly inside opts using a mini container per column
+    opts.innerHTML='';
+    extra.forEach(c=>{
+      const rowWrap=document.createElement('div'); rowWrap.style.padding='4px 0';
+      msResets.push(buildMultiSelect(rowWrap,c,c));
+      opts.appendChild(rowWrap);
+    });
+    panel.appendChild(opts);
+    panel.addEventListener('click',e=>e.stopPropagation());
+    moreWrap.appendChild(lbl); moreWrap.appendChild(btn); moreWrap.appendChild(panel);
+    btn.addEventListener('click',(e)=>{ panel.classList.toggle('open'); e.stopPropagation(); });
+  }
+
+  const dr=document.getElementById('dateRangeIngreso');
+  const drCtl=buildDateRange(dr,'Fecha Ingreso','Fecha ingreso');
+  msResets.push(drCtl);
+
+  document.getElementById('searchInput').value='';
+}
+
+document.addEventListener('click',()=>{ document.querySelectorAll('.ms-dropdown.open').forEach(d=>d.classList.remove('open')); document.getElementById('colPanel').classList.remove('open'); });
+
+/* ---------- Filtering ---------- */
+function matchesFilters(rec){
+  for(const col in STATE.filters){
+    const val=rec[col]; const has = val!==null && val!==undefined && String(val).trim()!=='';
+    if(!has) continue; // no filtramos registros vacíos en ese campo
+    if(!STATE.filters[col].has(String(val).trim())) return false;
+  }
+  const fi=STATE.dateFilters['Fecha Ingreso'];
+  if(fi && (fi.from||fi.to)){
+    const d=rec.__fIngreso;
+    if(!d) return false;
+    if(fi.from && d<fi.from) return false;
+    if(fi.to && d>fi.to) return false;
+  }
+  if(STATE.search){
+    const s=STATE.search.toLowerCase();
+    const hay=STATE.headers.some(h=>{ const v=rec[h]; return v!==null && v!==undefined && String(v).toLowerCase().includes(s); })
+      || String(rec['Nombre completo']||'').toLowerCase().includes(s);
+    if(!hay) return false;
+  }
+  return true;
+}
+function getFiltered(){ return STATE.records.filter(matchesFilters); }
+
+/* ---------- KPIs & Charts ---------- */
+let chartsRefs={};
+function renderKPIs(data){
+  const total=data.length;
+  const activos=data.filter(r=>r['Estado']==='Activo').length;
+  const cesados=total-activos;
+  const mujeres=data.filter(r=>String(r['Sexo']||'').toUpperCase()==='F').length;
+  const hombres=data.filter(r=>String(r['Sexo']||'').toUpperCase()==='M').length;
+  const edades=data.map(r=>r.__edad).filter(v=>v!==null && v!==undefined && !isNaN(v));
+  const antig=data.map(r=>r.__antiguedad).filter(v=>v!==null && v!==undefined && !isNaN(v));
+  const edadProm=edades.length?edades.reduce((a,b)=>a+b,0)/edades.length:0;
+  const antigProm=antig.length?antig.reduce((a,b)=>a+b,0)/antig.length:0;
+  const discap=data.filter(r=>String(r['Discapacitado']||'').toUpperCase()==='S').length;
+
+  const kpis=[
+    {label:'Total trabajadores', value:fmtInt(total), primary:true},
+    {label:'Activos / Cesados', value:`${fmtInt(activos)} / ${fmtInt(cesados)}`},
+    {label:'Mujeres / Hombres', value:`${fmtInt(mujeres)} / ${fmtInt(hombres)}`},
+    {label:'Edad promedio', value:edades.length?edadProm.toFixed(1)+' años':'—'},
+    {label:'Antigüedad promedio', value:antig.length?antigProm.toFixed(1)+' años':'—'},
+    {label:'Con discapacidad', value:fmtInt(discap)},
+  ];
+  const row=document.getElementById('kpiRow');
+  row.innerHTML=kpis.map(k=>`<div class="kpi-card ${k.primary?'primary':''}"><div class="kpi-label">${k.label}</div><div class="kpi-value">${k.value}</div></div>`).join('');
+}
+
+function countBy(data,col,topN){
+  const map={};
+  data.forEach(r=>{ const v=r[col]; const key=(v===null||v===undefined||String(v).trim()==='')?'Sin dato':String(v).trim(); map[key]=(map[key]||0)+1; });
+  let entries=Object.entries(map).sort((a,b)=>b[1]-a[1]);
+  if(topN && entries.length>topN){
+    const top=entries.slice(0,topN-1);
+    const restSum=entries.slice(topN-1).reduce((a,e)=>a+e[1],0);
+    top.push(['Otros',restSum]);
+    entries=top;
+  }
+  return entries;
+}
+
+function destroyChart(id){ if(chartsRefs[id]){ chartsRefs[id].destroy(); delete chartsRefs[id]; } }
+
+function barChart(id,entries,horizontal){
+  destroyChart(id);
+  const ctx=document.getElementById(id);
+  chartsRefs[id]=new Chart(ctx,{
+    type:'bar',
+    data:{labels:entries.map(e=>e[0]), datasets:[{data:entries.map(e=>e[1]), backgroundColor:'#10B981', borderRadius:2, barThickness: horizontal? 16: undefined}]},
+    options:{
+      indexAxis: horizontal?'y':'x',
+      responsive:true, maintainAspectRatio:false,
+      layout:{padding: horizontal? {right:34} : {top:22}},
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:c=>fmtInt(c.parsed[horizontal?'x':'y'])+' trabajadores'}},
+        datalabels:{
+          display:true,
+          color:'#14201D',
+          font:{weight:'600',size:11},
+          anchor:'end',
+          align:'end',
+          offset:2,
+          formatter:v=>fmtInt(v)
+        }
+      },
+      scales: horizontal
+        ? { x:{beginAtZero:true, grid:{color:'#F5F2F0'}, ticks:{callback:v=>fmtInt(v)}}, y:{grid:{display:false}} }
+        : { x:{grid:{display:false}}, y:{beginAtZero:true, grid:{color:'#F5F2F0'}, ticks:{callback:v=>fmtInt(v)}} }
+    }
+  });
+}
+function donutChart(id,entries){
+  destroyChart(id);
+  const ctx=document.getElementById(id);
+  const total=entries.reduce((a,e)=>a+e[1],0);
+  chartsRefs[id]=new Chart(ctx,{
+    type:'doughnut',
+    data:{labels:entries.map(e=>e[0]), datasets:[{data:entries.map(e=>e[1]), backgroundColor:PALETTE, borderWidth:2, borderColor:'#fff'}]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:true, position:'bottom', labels:{boxWidth:10,padding:14}},
+        tooltip:{callbacks:{label:c=>{ const pct=total?Math.round(c.parsed/total*100):0; return `${c.label}: ${fmtInt(c.parsed)} (${pct}%)`; }}},
+        datalabels:{
+          display:true,
+          color:'#fff',
+          font:{weight:'700',size:12},
+          formatter:(v)=>{ const pct=total?Math.round(v/total*100):0; return pct+'%'; }
+        }
+      }
+    }
+  });
+}
+
+function histogram(data,accessor,bins){
+  const counts=bins.map(()=>0);
+  data.forEach(r=>{
+    const v=accessor(r);
+    if(v===null||v===undefined||isNaN(v)) return;
+    for(let i=0;i<bins.length;i++){ if(v>=bins[i].min && v<bins[i].max){ counts[i]++; break; } }
+  });
+  return bins.map((b,i)=>[b.label,counts[i]]);
+}
+
+function renderCharts(data){
+  barChart('chartArea', countBy(data,'Descripción Area',8), true);
+  donutChart('chartSexo', countBy(data,'Sexo'));
+  barChart('chartCategoria', countBy(data,'Categoria',8), false);
+  barChart('chartSucursal', countBy(data,STATE.headers.includes('Sucursal ')?'Sucursal ':'Sucursal',8), false);
+  const antigBins=[{min:0,max:1,label:'<1'},{min:1,max:3,label:'1-3'},{min:3,max:5,label:'3-5'},{min:5,max:10,label:'5-10'},{min:10,max:20,label:'10-20'},{min:20,max:999,label:'20+'}];
+  barChart('chartAntiguedad', histogram(data,r=>r.__antiguedad,antigBins), false);
+  const edadBins=[{min:0,max:25,label:'<25'},{min:25,max:35,label:'25-35'},{min:35,max:45,label:'35-45'},{min:45,max:55,label:'45-55'},{min:55,max:200,label:'55+'}];
+  barChart('chartEdad', histogram(data,r=>r.__edad,edadBins), false);
+}
+
+/* ---------- Table ---------- */
+function allColumnsForTable(){ return ['Nombre completo', ...STATE.headers.filter(h=>h!=='Nombre completo')]; }
+
+function initVisibleCols(){
+  STATE.visibleCols=new Set();
+  DEFAULT_VISIBLE.forEach(c=>{ if(allColumnsForTable().includes(c)) STATE.visibleCols.add(c); });
+  if(STATE.visibleCols.size===0){ allColumnsForTable().slice(0,8).forEach(c=>STATE.visibleCols.add(c)); }
+}
+
+function buildColPanel(){
+  const panel=document.getElementById('colPanel');
+  panel.innerHTML='';
+  const normal=allColumnsForTable().filter(c=>!SENSITIVE_FIELDS.includes(c));
+  const sensitive=allColumnsForTable().filter(c=>SENSITIVE_FIELDS.includes(c));
+  const mk=(c)=>{
+    const item=document.createElement('label'); item.className='colpicker-item';
+    const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=STATE.visibleCols.has(c);
+    cb.addEventListener('change',()=>{ if(cb.checked) STATE.visibleCols.add(c); else STATE.visibleCols.delete(c); renderTable(); });
+    item.appendChild(cb); const sp=document.createElement('span'); sp.textContent=c; item.appendChild(sp);
+    return item;
+  };
+  const t1=document.createElement('div'); t1.className='colpicker-group-title'; t1.textContent='Columnas'; panel.appendChild(t1);
+  normal.forEach(c=>panel.appendChild(mk(c)));
+  if(sensitive.length){
+    const w=document.createElement('div'); w.className='sensitive-warn'; w.textContent='⚠ Sensibles — no recomendado mostrar/exportar sin necesidad';
+    panel.appendChild(w);
+    sensitive.forEach(c=>panel.appendChild(mk(c)));
+  }
+}
+
+function renderTable(){
+  const data=getFiltered();
+  if(STATE.sortCol){
+    data.sort((a,b)=>{
+      let va=a[STATE.sortCol], vb=b[STATE.sortCol];
+      if(va instanceof Date || vb instanceof Date){ va=va?va.getTime():-Infinity; vb=vb?vb.getTime():-Infinity; }
+      else if(typeof va==='number' || typeof vb==='number'){ va=va==null?-Infinity:va; vb=vb==null?-Infinity:vb; }
+      else { va=String(va??'').toLowerCase(); vb=String(vb??'').toLowerCase(); }
+      if(va<vb) return -1*STATE.sortDir; if(va>vb) return 1*STATE.sortDir; return 0;
+    });
+  }
+  const cols=allColumnsForTable().filter(c=>STATE.visibleCols.has(c));
+  const head=document.getElementById('tableHeadRow');
+  head.innerHTML=cols.map(c=>`<th data-col="${c}">${c}${STATE.sortCol===c?`<span class="sort-arrow">${STATE.sortDir===1?'▲':'▼'}</span>`:''}</th>`).join('');
+  head.querySelectorAll('th').forEach(th=>th.addEventListener('click',()=>{
+    const c=th.getAttribute('data-col');
+    if(STATE.sortCol===c) STATE.sortDir*=-1; else { STATE.sortCol=c; STATE.sortDir=1; }
+    renderTable();
+  }));
+
+  const totalPages=Math.max(1,Math.ceil(data.length/STATE.pageSize));
+  STATE.page=Math.min(STATE.page,totalPages);
+  const start=(STATE.page-1)*STATE.pageSize;
+  const pageData=data.slice(start,start+STATE.pageSize);
+
+  const body=document.getElementById('tableBody');
+  body.innerHTML=pageData.map(r=>{
+    return '<tr>'+cols.map(c=>{
+      let v=r[c];
+      if(v instanceof Date) v=v.toLocaleDateString('es-PE');
+      if(v===null||v===undefined) v='';
+      if(c==='Sexo') return `<td class="pill-sexo-${v}">${v}</td>`;
+      if(c==='Estado') return `<td class="pill-estado-${v}">${v}</td>`;
+      return `<td>${v}</td>`;
+    }).join('')+'</tr>';
+  }).join('');
+
+  document.getElementById('pgInfo').textContent = data.length
+    ? `Mostrando ${start+1}–${Math.min(start+STATE.pageSize,data.length)} de ${fmtInt(data.length)}`
+    : 'Sin resultados';
+  document.getElementById('pgPrev').disabled = STATE.page<=1;
+  document.getElementById('pgNext').disabled = STATE.page>=totalPages;
+}
+
+/* ---------- Orchestration ---------- */
+function applyFiltersAndRender(){
+  STATE.page=1;
+  const data=getFiltered();
+  document.getElementById('resultLine').innerHTML=`<b>${fmtInt(data.length)}</b> de ${fmtInt(STATE.records.length)} trabajadores según los filtros actuales.`;
+  if(STATE.view==='dashboard'){ renderKPIs(data); renderCharts(data); }
+  else { renderTable(); }
+}
+
+function setView(v){
+  STATE.view=v;
+  document.getElementById('btnViewDashboard').classList.toggle('active',v==='dashboard');
+  document.getElementById('btnViewTable').classList.toggle('active',v==='table');
+  document.getElementById('dashboardView').classList.toggle('hidden',v!=='dashboard');
+  document.getElementById('tableView').classList.toggle('hidden',v!=='table');
+  applyFiltersAndRender();
+}
+
+document.getElementById('btnViewDashboard').addEventListener('click',()=>setView('dashboard'));
+document.getElementById('btnViewTable').addEventListener('click',()=>setView('table'));
+document.getElementById('searchInput').addEventListener('input',(e)=>{ STATE.search=e.target.value.trim(); applyFiltersAndRender(); });
+document.getElementById('btnReset').addEventListener('click',()=>{
+  msResets.forEach(r=>r.reset());
+  STATE.search=''; document.getElementById('searchInput').value='';
+  STATE.sortCol=null;
+  applyFiltersAndRender();
+});
+document.getElementById('pgPrev').addEventListener('click',()=>{ STATE.page--; renderTable(); });
+document.getElementById('pgNext').addEventListener('click',()=>{ STATE.page++; renderTable(); });
+document.getElementById('btnCols').addEventListener('click',(e)=>{ document.getElementById('colPanel').classList.toggle('open'); e.stopPropagation(); });
+document.getElementById('colPanel').addEventListener('click',e=>e.stopPropagation());
+
+/* ---------- Export ---------- */
+/* ---------- Export tabla (Excel con estilo) ---------- */
+async function exportStyledExcel(rows,cols){
+  const wb=new ExcelJS.Workbook();
+  const ws=wb.addWorksheet('Personal filtrado');
+  ws.columns=cols.map(c=>({header:c, key:c, width:Math.min(32,Math.max(12,c.length+4))}));
+  rows.forEach(r=>ws.addRow(r));
+  ws.getRow(1).eachCell(cell=>{
+    cell.font={bold:true,color:{argb:'FFFFFFFF'},size:11};
+    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF0E3B36'}};
+    cell.alignment={vertical:'middle',horizontal:'left'};
+    cell.border={top:{style:'thin',color:{argb:'FF0E3B36'}},left:{style:'thin',color:{argb:'FF0E3B36'}},bottom:{style:'thin',color:{argb:'FF0E3B36'}},right:{style:'thin',color:{argb:'FF0E3B36'}}};
+  });
+  ws.eachRow((row,rowNumber)=>{
+    if(rowNumber===1) return;
+    row.eachCell(cell=>{
+      cell.border={top:{style:'thin',color:{argb:'FFB9C4C0'}},left:{style:'thin',color:{argb:'FFB9C4C0'}},bottom:{style:'thin',color:{argb:'FFB9C4C0'}},right:{style:'thin',color:{argb:'FFB9C4C0'}}};
+      cell.alignment={vertical:'middle'};
+    });
+  });
+  ws.views=[{state:'frozen',ySplit:1}];
+  const buf=await wb.xlsx.writeBuffer();
+  const blob=new Blob([buf],{type:'application/octet-stream'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=`personal_lives_${new Date().toISOString().slice(0,10)}.xlsx`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('btnExport').addEventListener('click',()=>{
+  const data=getFiltered();
+  document.getElementById('exportSummary').textContent=`Se exportarán ${fmtInt(data.length)} registros filtrados, con encabezado de color y bordes.`;
+  document.getElementById('includeSensitive').checked=false;
+  document.getElementById('exportModal').classList.add('open');
+});
+document.getElementById('btnExportCancel').addEventListener('click',()=>document.getElementById('exportModal').classList.remove('open'));
+document.getElementById('exportModal').addEventListener('click',(e)=>{ if(e.target.id==='exportModal') e.currentTarget.classList.remove('open'); });
+document.getElementById('btnExportConfirm').addEventListener('click',async ()=>{
+  const includeSensitive=document.getElementById('includeSensitive').checked;
+  const data=getFiltered();
+  const cols=allColumnsForTable().filter(c=>includeSensitive || !SENSITIVE_FIELDS.includes(c));
+  const rows=data.map(r=>{
+    const o={};
+    cols.forEach(c=>{ let v=r[c]; if(v instanceof Date) v=v.toLocaleDateString('es-PE'); o[c]=v??''; });
+    return o;
+  });
+  await exportStyledExcel(rows,cols);
+  document.getElementById('exportModal').classList.remove('open');
+});
+
+/* ---------- Export dashboard (imagen) ---------- */
+document.getElementById('btnExportDash').addEventListener('click', async ()=>{
+  const btn=document.getElementById('btnExportDash');
+  const original=btn.textContent; btn.textContent='Generando...'; btn.disabled=true;
+  try{
+    if(STATE.view!=='dashboard') setView('dashboard');
+    await new Promise(r=>setTimeout(r,350));
+    const target=document.getElementById('dashboardView');
+    const canvas=await html2canvas(target,{backgroundColor:'#ffffff',scale:2});
+    const link=document.createElement('a');
+    link.download=`dashboard_personal_lives_${new Date().toISOString().slice(0,10)}.png`;
+    link.href=canvas.toDataURL('image/png');
+    link.click();
+  }finally{
+    btn.textContent=original; btn.disabled=false;
+  }
+});
+
+/* ---------- File loading ---------- */
+const dropzone=document.getElementById('dropzone');
+const fileInput=document.getElementById('fileInput');
+dropzone.addEventListener('click',()=>fileInput.click());
+dropzone.addEventListener('dragover',e=>{e.preventDefault(); dropzone.classList.add('drag');});
+dropzone.addEventListener('dragleave',()=>dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop',e=>{ e.preventDefault(); dropzone.classList.remove('drag'); if(e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change',e=>{ if(e.target.files.length) loadFile(e.target.files[0]); });
+document.getElementById('btnNewFile').addEventListener('click',()=>{
+  document.getElementById('appScreen').style.display='none';
+  document.getElementById('hdrActions').style.display='none';
+  document.getElementById('uploadScreen').style.display='flex';
+  document.getElementById('fileNameLabel').textContent='';
+  fileInput.value='';
+});
+
+function loadFile(file){
+  const errBox=document.getElementById('uploadError');
+  errBox.style.display='none';
+  const reader=new FileReader();
+  reader.onload=(e)=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+      const sheetName=wb.SheetNames[0];
+      const matrix=XLSX.utils.sheet_to_json(wb.Sheets[sheetName],{header:1,raw:true,defval:null});
+      const {headers,records}=processWorkbook(matrix);
+      if(!headers.length || !records.length){
+        errBox.textContent='No se pudo detectar una tabla de datos en este archivo. Verifica que tenga encabezados y filas de datos.';
+        errBox.style.display='block';
+        return;
+      }
+      STATE.headers=headers;
+      STATE.records=records;
+      document.getElementById('uploadScreen').style.display='none';
+      document.getElementById('appScreen').style.display='block';
+      document.getElementById('hdrActions').style.display='flex';
+      document.getElementById('fileNameLabel').textContent='· '+file.name;
+      buildFiltersUI();
+      initVisibleCols();
+      buildColPanel();
+      setView('dashboard');
+    }catch(err){
+      errBox.textContent='Error al leer el archivo: '+err.message;
+      errBox.style.display='block';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+</script>
+</body>
+</html>
