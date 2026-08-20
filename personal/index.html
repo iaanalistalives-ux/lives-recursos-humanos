@@ -48,9 +48,6 @@ input,select{font-family:inherit}
 .lives-header .brand{display:flex;align-items:center;gap:16px}
 .lives-header .title{font-size:18px;font-weight:300;letter-spacing:0.06em;text-transform:uppercase;color:#fff}
 .lives-header .title .subtitle{color:#F5F5F0;margin-left:14px;font-size:13px;letter-spacing:0.04em}
-.lives-header .hdr-actions{display:flex;gap:10px;align-items:center}
-.hdr-btn{padding:7px 14px;border:1px solid rgba(255,255,255,0.55);border-radius:16px;color:#fff;font-size:12.5px;letter-spacing:0.03em;transition:all .15s}
-.hdr-btn:hover{background:rgba(255,255,255,0.15)}
 
 /* Upload screen */
 .upload-wrap{min-height:calc(100vh - 72px);display:flex;align-items:center;justify-content:center;background:var(--bg-soft);padding:32px}
@@ -125,6 +122,22 @@ input,select{font-family:inherit}
 /* Main container */
 .container{padding:24px 32px;max-width:1600px;margin:0 auto}
 .result-line{font-size:12.5px;color:var(--stone-gray);margin-bottom:16px}
+.file-footer{
+  margin-top:32px;
+  padding:16px 18px;
+  background:#fff;
+  border:1px solid var(--warm-gray);
+  border-radius:12px;
+  box-shadow:0 1px 3px rgba(14,59,54,0.06);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;
+}
+.file-footer .ff-text{font-size:12.5px;color:var(--stone-gray)}
+.file-footer .ff-text b{color:var(--title-dark);font-weight:600}
+.file-footer .ff-sub{font-size:11.5px;color:var(--stone-gray);margin-top:3px}
 .result-line b{color:var(--title-dark)}
 
 /* KPI Cards */
@@ -195,7 +208,7 @@ table.data-table tbody tr:hover{background:var(--warm-gray-light)}
 
 #appScreen{display:none}
 .hidden{display:none !important}
-@media print{.filters-bar,.hdr-actions,.table-tools,.pagination{display:none !important}}
+@media print{.filters-bar,.file-footer,.table-tools,.pagination{display:none !important}}
 </style>
 </head>
 <body>
@@ -210,9 +223,6 @@ table.data-table tbody tr:hover{background:var(--warm-gray-light)}
       <path d="M546.000000,979.000000C545.999634,1033.996460 546.003662,1088.492798 545.994385,1142.989258C545.992920,1151.704834 545.706116,1151.977539 537.006348,1151.994263C531.506958,1152.004761 526.007080,1151.928589 520.508057,1151.971191C516.761414,1152.000244 514.955139,1150.242065 515.040100,1146.495850C515.070312,1145.163818 515.006042,1143.829834 515.005981,1142.496826C515.003967,1071.834839 515.001526,1001.172791 515.007141,930.510742C515.007874,921.118774 515.122803,921.017517 524.499512,921.002991C529.499146,920.995239 534.504211,921.157715 539.496887,920.974487C544.198853,920.801941 546.068481,922.808105 546.034180,927.503723C545.909973,944.501709 545.994324,961.501099 546.000000,979.000000z"/>
     </svg>
     <div class="title">GESTIÓN DE PERSONAL <span class="subtitle" id="fileNameLabel"></span></div>
-  </div>
-  <div class="hdr-actions" id="hdrActions" style="display:none">
-    <button class="hdr-btn" id="btnNewFile">Cargar otro archivo</button>
   </div>
 </div>
 
@@ -310,6 +320,15 @@ table.data-table tbody tr:hover{background:var(--warm-gray-light)}
           <button id="pgNext">Siguiente ›</button>
         </div>
       </div>
+    </div>
+
+    <!-- PIE: cambiar de archivo -->
+    <div class="file-footer">
+      <div>
+        <div class="ff-text">Archivo cargado: <b id="footerFileName">—</b></div>
+        <div class="ff-sub">Los datos se procesan solo en tu navegador; no se suben a ningún servidor.</div>
+      </div>
+      <button class="chip" id="btnNewFile">Cargar otro archivo</button>
     </div>
   </div>
 </div>
@@ -886,9 +905,9 @@ dropzone.addEventListener('drop',e=>{ e.preventDefault(); dropzone.classList.rem
 fileInput.addEventListener('change',e=>{ if(e.target.files.length) loadFile(e.target.files[0]); });
 document.getElementById('btnNewFile').addEventListener('click',()=>{
   document.getElementById('appScreen').style.display='none';
-  document.getElementById('hdrActions').style.display='none';
   document.getElementById('uploadScreen').style.display='flex';
   document.getElementById('fileNameLabel').textContent='';
+  document.getElementById('footerFileName').textContent='—';
   fileInput.value='';
 });
 
@@ -911,8 +930,8 @@ function loadFile(file){
       STATE.records=records;
       document.getElementById('uploadScreen').style.display='none';
       document.getElementById('appScreen').style.display='block';
-      document.getElementById('hdrActions').style.display='flex';
       document.getElementById('fileNameLabel').textContent='· '+file.name;
+      document.getElementById('footerFileName').textContent=file.name;
       buildFiltersUI();
       initVisibleCols();
       buildColPanel();
