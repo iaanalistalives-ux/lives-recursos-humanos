@@ -21,13 +21,19 @@
   --dusty-rose:#DC2626;
   --warm-tan:#F59E0B;
   --title-dark:#14201D;
-  --bg:#FFFFFF;
+  --bg:#F1F6F4;
   --bg-soft:#F1F6F4;
   --petrol:#0E3B36;
+  --petrol-2:#12463F;
   --emer:#10B981;
+  --card:#fff;
+  --sh:0 1px 3px rgba(14,59,54,.06),0 1px 2px rgba(14,59,54,.04);
+  --sh-h:0 4px 12px rgba(14,59,54,.10);
+  --r:12px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{font-family:Calibri,Arial,sans-serif;background:var(--bg);color:var(--stone-gray);font-size:14px;line-height:1.4}
+html,body{font-family:Calibri,Arial,sans-serif;background:var(--warm-gray-light);color:var(--stone-gray);font-size:14px;line-height:1.4;font-variant-numeric:tabular-nums}
+html,body{min-height:100%}
 h1,h2,h3,h4{font-family:Calibri,Arial,sans-serif;font-weight:400;color:var(--title-dark)}
 button{font-family:inherit;cursor:pointer;background:none;border:none;color:inherit}
 a{color:var(--sage);text-decoration:none}
@@ -50,13 +56,13 @@ input,select{font-family:inherit}
 .lives-header .title .subtitle{color:#F5F5F0;margin-left:14px;font-size:13px;letter-spacing:0.04em}
 
 /* Upload screen */
-.upload-wrap{min-height:calc(100vh - 72px);display:flex;align-items:center;justify-content:center;background:var(--bg-soft);padding:32px}
+.upload-wrap{min-height:calc(100vh - 72px);display:flex;align-items:center;justify-content:center;background:var(--warm-gray-light);padding:32px}
 .upload-card{width:100%;max-width:640px;text-align:center}
 .upload-card h2{font-size:22px;font-weight:300;margin-bottom:6px}
 .upload-card p{color:var(--stone-gray);font-size:13.5px;margin-bottom:28px}
 .dropzone{
   border:2px dashed var(--warm-gray);
-  border-radius:10px;
+  border-radius:var(--r);
   padding:52px 24px;
   background:#fff;
   cursor:pointer;
@@ -66,8 +72,8 @@ input,select{font-family:inherit}
 .dropzone .dz-icon{font-size:38px;color:var(--sage);margin-bottom:14px}
 .dropzone .dz-title{font-size:15px;color:var(--title-dark);margin-bottom:4px}
 .dropzone .dz-sub{font-size:12.5px;color:var(--stone-gray)}
-.upload-note{margin-top:22px;background:#fff;border-left:4px solid var(--warm-tan);padding:12px 16px;text-align:left;font-size:12px;color:var(--stone-gray);border-radius:0 6px 6px 0}
-.upload-error{margin-top:16px;background:#fff;border-left:4px solid var(--dusty-rose);padding:12px 16px;text-align:left;font-size:12.5px;color:var(--title-dark);border-radius:0 6px 6px 0;display:none}
+.upload-note{margin-top:22px;background:var(--card);border-left:4px solid var(--warm-tan);padding:12px 16px;text-align:left;font-size:12px;color:var(--stone-gray);border-radius:0 var(--r) var(--r) 0;box-shadow:var(--sh)}
+.upload-error{margin-top:16px;background:var(--card);border-left:4px solid var(--dusty-rose);padding:12px 16px;text-align:left;font-size:12.5px;color:var(--title-dark);border-radius:0 var(--r) var(--r) 0;box-shadow:var(--sh);display:none}
 
 /* Filters Bar */
 .filters-bar{
@@ -97,7 +103,7 @@ input,select{font-family:inherit}
 .ms-trigger.active-filter{border-color:var(--sage);color:var(--sage-dark)}
 .ms-trigger:hover{border-color:var(--sage)}
 .ms-trigger .caret{color:var(--stone-gray);font-size:10px}
-.ms-dropdown{position:absolute;top:calc(100% + 4px);left:0;min-width:220px;background:#fff;border:1px solid var(--warm-gray);border-radius:4px;max-height:280px;overflow:hidden;display:none;z-index:200;box-shadow:0 4px 12px rgba(0,0,0,0.10)}
+.ms-dropdown{position:absolute;top:calc(100% + 4px);left:0;min-width:220px;background:var(--card);border:1px solid var(--warm-gray);border-radius:var(--r);max-height:280px;overflow:hidden;display:none;z-index:200;box-shadow:var(--sh-h)}
 .ms-dropdown.open{display:flex;flex-direction:column}
 .ms-search{border:none;border-bottom:1px solid var(--warm-gray-light);padding:8px 12px;font-size:13px;font-family:inherit;color:var(--title-dark);outline:none}
 .ms-options{overflow-y:auto;flex:1;max-height:170px}
@@ -126,9 +132,9 @@ input,select{font-family:inherit}
   margin-top:32px;
   padding:16px 18px;
   background:#fff;
-  border:1px solid var(--warm-gray);
-  border-radius:12px;
-  box-shadow:0 1px 3px rgba(14,59,54,0.06);
+  border:0;
+  border-radius:var(--r);
+  box-shadow:var(--sh);
   display:flex;
   align-items:center;
   justify-content:space-between;
@@ -142,7 +148,7 @@ input,select{font-family:inherit}
 
 /* KPI Cards */
 .kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:22px}
-.kpi-card{background:#fff;border:1px solid var(--warm-gray);border-radius:6px;padding:16px 18px}
+.kpi-card{background:var(--card);border:0;border-radius:var(--r);padding:16px 18px;box-shadow:var(--sh)}
 .kpi-label{font-size:10.5px;text-transform:uppercase;letter-spacing:0.07em;color:var(--stone-gray);font-weight:600;margin-bottom:8px}
 .kpi-value{font-size:26px;font-weight:700;color:var(--sage);line-height:1.1}
 .kpi-card.primary{border:2px solid var(--petrol);background:var(--petrol)}
@@ -152,14 +158,14 @@ input,select{font-family:inherit}
 
 /* Panels */
 .panel-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:16px}
-.panel{background:#fff;border:1px solid var(--warm-gray);border-radius:8px;padding:18px}
+.panel{background:var(--card);border:0;border-radius:var(--r);padding:18px;box-shadow:var(--sh)}
 .panel h3{font-size:14px;font-weight:600;color:var(--title-dark);margin-bottom:14px}
 .panel .chart-wrap{position:relative;height:260px}
 .panel.full{grid-column:1 / -1}
 
 /* Table */
 .table-tools{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap}
-.table-scroll{overflow-x:auto;border:1px solid var(--warm-gray);border-radius:8px;background:#fff}
+.table-scroll{overflow-x:auto;border:0;border-radius:var(--r);background:var(--card);box-shadow:var(--sh)}
 .table-scroll::-webkit-scrollbar{height:10px}
 .table-scroll::-webkit-scrollbar-track{background:var(--warm-gray-light)}
 .table-scroll::-webkit-scrollbar-thumb{background:var(--warm-gray);border-radius:6px}
@@ -182,7 +188,7 @@ table.data-table tbody tr:hover{background:var(--warm-gray-light)}
 
 /* Column picker */
 .colpicker-wrap{position:relative}
-.colpicker-panel{position:absolute;right:0;top:calc(100% + 6px);background:#fff;border:1px solid var(--warm-gray);border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,0.10);width:280px;max-height:360px;overflow-y:auto;display:none;z-index:300;padding:10px}
+.colpicker-panel{position:absolute;right:0;top:calc(100% + 6px);background:var(--card);border:1px solid var(--warm-gray);border-radius:var(--r);box-shadow:var(--sh-h);width:280px;max-height:360px;overflow-y:auto;display:none;z-index:300;padding:10px}
 .colpicker-panel.open{display:block}
 .colpicker-group-title{font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;color:var(--taupe);font-weight:700;padding:8px 6px 4px}
 .colpicker-item{display:flex;align-items:center;gap:8px;padding:5px 6px;font-size:12.5px;color:var(--title-dark);border-radius:4px}
@@ -193,7 +199,7 @@ table.data-table tbody tr:hover{background:var(--warm-gray-light)}
 /* Export modal */
 .modal-overlay{position:fixed;inset:0;background:rgba(51,51,51,0.45);display:none;align-items:center;justify-content:center;z-index:1000}
 .modal-overlay.open{display:flex}
-.modal-box{background:#fff;border-radius:8px;width:420px;max-width:92vw;padding:24px}
+.modal-box{background:var(--card);border-radius:var(--r);width:420px;max-width:92vw;padding:24px}
 .modal-box h3{font-size:16px;margin-bottom:6px}
 .modal-box p{font-size:12.5px;color:var(--stone-gray);margin-bottom:16px}
 .modal-toggle-row{display:flex;align-items:flex-start;gap:10px;background:var(--bg-soft);border:1px solid var(--warm-gray);border-radius:6px;padding:12px;margin-bottom:16px}
@@ -354,17 +360,21 @@ table.data-table tbody tr:hover{background:var(--warm-gray-light)}
 
 <script>
 const FONT='Calibri, Arial, sans-serif';
+// Paleta LIVES v2.2 (skill lives-dashboard) — no modificar
+const P={sage:'#0F7A5A',sageD:'#0B815E',slate:'#4E6B78',taupe:'#B45309',rose:'#DC2626',tan:'#F59E0B',warmL:'#F1F6F4',stone:'#5F726C',emer:'#10B981',petrol:'#0E3B36'};
 Chart.defaults.font.family=FONT;
 Chart.defaults.font.size=12;
-Chart.defaults.color='#7C7B77';
-Chart.defaults.borderColor='#F5F2F0';
-Chart.defaults.plugins.tooltip.backgroundColor='rgba(51,51,51,0.95)';
+Chart.defaults.color=P.stone;
+Chart.defaults.borderColor=P.warmL;
+Chart.defaults.plugins.tooltip.backgroundColor='rgba(14,59,54,.95)';
 Chart.defaults.plugins.tooltip.padding=10;
-Chart.defaults.plugins.tooltip.cornerRadius=4;
+Chart.defaults.plugins.tooltip.cornerRadius=6;
 Chart.defaults.plugins.legend.display=false;
 if(window.ChartDataLabels) Chart.register(ChartDataLabels);
 Chart.defaults.set('plugins.datalabels',{display:false});
-const PALETTE=['#10B981','#4E6B78','#F59E0B','#DC2626','#0E3B36','#8FA6A0','#0B815E','#B45309'];
+// Rotación oficial de 5 colores para desgloses por categoría
+const ROT=[P.taupe,P.slate,P.emer,P.rose,P.tan];
+const rotColors=n=>Array.from({length:n},(_,i)=>ROT[i%ROT.length]);
 const fmtInt=n=>Math.round(n).toLocaleString('es-PE');
 
 // Campos sensibles: ocultos por defecto en tabla y excluidos por defecto de la exportación
@@ -654,7 +664,7 @@ function barChart(id,entries,horizontal){
   const ctx=document.getElementById(id);
   chartsRefs[id]=new Chart(ctx,{
     type:'bar',
-    data:{labels:entries.map(e=>e[0]), datasets:[{data:entries.map(e=>e[1]), backgroundColor:'#10B981', borderRadius:2, barThickness: horizontal? 16: undefined}]},
+    data:{labels:entries.map(e=>e[0]), datasets:[{data:entries.map(e=>e[1]), backgroundColor:P.sage, borderRadius:2, barThickness: horizontal? 16: undefined}]},
     options:{
       indexAxis: horizontal?'y':'x',
       responsive:true, maintainAspectRatio:false,
@@ -664,7 +674,7 @@ function barChart(id,entries,horizontal){
         tooltip:{callbacks:{label:c=>fmtInt(c.parsed[horizontal?'x':'y'])+' trabajadores'}},
         datalabels:{
           display:true,
-          color:'#14201D',
+          color:P.stone,
           font:{weight:'600',size:11},
           anchor:'end',
           align:'end',
@@ -673,8 +683,8 @@ function barChart(id,entries,horizontal){
         }
       },
       scales: horizontal
-        ? { x:{beginAtZero:true, grid:{color:'#F5F2F0'}, ticks:{callback:v=>fmtInt(v)}}, y:{grid:{display:false}} }
-        : { x:{grid:{display:false}}, y:{beginAtZero:true, grid:{color:'#F5F2F0'}, ticks:{callback:v=>fmtInt(v)}} }
+        ? { x:{beginAtZero:true, grid:{color:P.warmL}, ticks:{callback:v=>fmtInt(v)}}, y:{grid:{display:false}} }
+        : { x:{grid:{display:false}}, y:{beginAtZero:true, grid:{color:P.warmL}, ticks:{callback:v=>fmtInt(v)}} }
     }
   });
 }
@@ -684,7 +694,7 @@ function donutChart(id,entries){
   const total=entries.reduce((a,e)=>a+e[1],0);
   chartsRefs[id]=new Chart(ctx,{
     type:'doughnut',
-    data:{labels:entries.map(e=>e[0]), datasets:[{data:entries.map(e=>e[1]), backgroundColor:PALETTE, borderWidth:2, borderColor:'#fff'}]},
+    data:{labels:entries.map(e=>e[0]), datasets:[{data:entries.map(e=>e[1]), backgroundColor:rotColors(entries.length), borderWidth:2, borderColor:'#fff'}]},
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{
@@ -885,7 +895,7 @@ document.getElementById('btnExportDash').addEventListener('click', async ()=>{
     if(STATE.view!=='dashboard') setView('dashboard');
     await new Promise(r=>setTimeout(r,350));
     const target=document.getElementById('dashboardView');
-    const canvas=await html2canvas(target,{backgroundColor:'#ffffff',scale:2});
+    const canvas=await html2canvas(target,{backgroundColor:P.warmL,scale:2});
     const link=document.createElement('a');
     link.download=`dashboard_personal_lives_${new Date().toISOString().slice(0,10)}.png`;
     link.href=canvas.toDataURL('image/png');
